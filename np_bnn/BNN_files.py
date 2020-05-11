@@ -16,14 +16,15 @@ def get_data(f,l,testsize=0.1, batch_training=0,seed=1234):
     except(ValueError): tot_x = np.loadtxt(f)
     tot_labels = np.loadtxt(l,dtype=str)
     tot_labels_numeric = turn_labels_to_numeric(tot_labels, l)
-    x, labels, x_test, labels_test = randomize_data(tot_x, tot_labels,testsize=testsize)
+    x, labels, x_test, labels_test = randomize_data(tot_x, tot_labels_numeric,testsize=testsize)
 
     if batch_training:
         indx = np.random.randint(0,len(labels),batch_training)
         x = x[indx]
         labels = labels[indx]
         
-    return x, labels, x_test, labels_test
+    return {'data': x, 'labels': labels, 'label_dict': np.unique(tot_labels),
+            'test_data': x_test, 'test_labels': labels_test}
 
 
 def save_data(dat, lab, outname="data", test_dat=[], test_lab=[]):
@@ -89,13 +90,14 @@ def load_obj(file_name):
         return pickle.load(f)
 
 
-def turn_labels_to_numeric(labels,label_file):
+def turn_labels_to_numeric(labels,label_file,save_to_file=False):
     numerical_labels = labels.copy()
     for i, label in enumerate(np.unique(numerical_labels)):
         numerical_labels[numerical_labels==label] = i
     numerical_labels = numerical_labels.astype(int)
-    outfile = label_file.replace('.txt','_numerical.txt')
-    np.savetxt(outfile,numerical_labels,fmt='%i')
+    if save_to_file:
+        outfile = label_file.replace('.txt','_numerical.txt')
+        np.savetxt(outfile,numerical_labels,fmt='%i')
     return numerical_labels
 
 

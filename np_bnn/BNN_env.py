@@ -8,7 +8,7 @@ np.set_printoptions(suppress= 1) # prints floats, no scientific notation
 np.set_printoptions(precision=3) # rounds all array elements to 3rd digit
 
 class npBNN():
-    def __init__(self, data, labels, test_data, test_labels, n_nodes = [50, 5],
+    def __init__(self, dat, n_nodes = [50, 5],
                  use_bias_node=1, init_std=0.1, p_scale=1,
                  prior_f=1, hyper_p=0, freq_indicator=0, w_bound = np.infty,
                  pickle_file="",seed=1234):
@@ -16,6 +16,7 @@ class npBNN():
         # to change the boundaries of a uniform prior use -p_scale
         # hyper_p: 0) no hyperpriors, 1) 1 per layer, 2) 1 per input node, 3) 1 per node
         # freq_indicator -> update freq indicators: 0) no indicators, 0-1
+        data, labels, test_data, test_labels = dat['data'], dat['labels'], dat['test_data'], dat['test_labels']
         self._seed = seed
         np.random.seed(self._seed)
         self._data = data
