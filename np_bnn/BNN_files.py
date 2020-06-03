@@ -91,10 +91,12 @@ def load_obj(file_name):
 
 
 def turn_labels_to_numeric(labels,label_file,save_to_file=False):
-    numerical_labels = labels.copy()
-    for i, label in enumerate(np.unique(numerical_labels)):
-        numerical_labels[numerical_labels==label] = i
-    numerical_labels = numerical_labels.astype(int)
+    numerical_labels = np.zeros(len(labels)).astype(int)
+    c = 0
+    for i in np.unique(labels):
+        numerical_labels[labels == i] = c
+        c += 1
+
     if save_to_file:
         outfile = label_file.replace('.txt','_numerical.txt')
         np.savetxt(outfile,numerical_labels,fmt='%i')

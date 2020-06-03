@@ -58,8 +58,7 @@ while True:
 
 
 # make predictions based on MCMC's estimated weights
-post_pkl = "./BNN_p1_h0_l5_5_s1_binf_1234.pkl"
-post_pr = BNN_lib.predictBNN(dat['test_data'], post_pkl, test_labels=dat['test_labels'])
+post_pr = BNN_lib.predictBNN(dat['test_data'], pickle_file=logger._w_file, test_labels=dat['test_labels'])
 
 
 
