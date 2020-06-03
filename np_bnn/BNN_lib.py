@@ -1,6 +1,7 @@
 import numpy as np
 import scipy.stats
 import scipy.special
+import pandas as pd
 np.set_printoptions(suppress= 1) # prints floats, no scientific notation
 np.set_printoptions(precision=3) # rounds all array elements to 3rd digit
 import pickle
@@ -62,6 +63,15 @@ def UpdateBinomial(ind,update_f,shape_out):
 def CalcAccuracy(y,lab):
     prediction = np.argmax(y, axis=1)
     return len(prediction[prediction==lab])/len(prediction)
+
+def CalcConfusionMatrix(y,lab):
+    prediction = np.argmax(y, axis=1)
+    y_actu = pd.Series(lab, name='True')
+    y_pred = pd.Series(prediction, name='Predicted')
+    df_confusion = pd.crosstab(y_actu, y_pred, margins=True, rownames=['True'], colnames=['Predicted'])
+    return df_confusion
+
+
 
 def CalcLabelFreq(y):
     prediction = np.argmax(y, axis=1)
@@ -226,6 +236,7 @@ def predictBNN(predict_features, pickle_file, test_labels=[], pickle_file_prior=
         print("Accuracy:", np.mean(accuracy))
         print("True positive rate:", np.mean(TPrate))
         print("False positive rate:", np.mean(FPrate))
+        print("Confusion matrix:\n", CalcConfusionMatrix(post_prob_predictions, test_labels))
 
     if pickle_file_prior:
         prior_weights = np_bnn.BNN_files.load_obj(pickle_file_prior)
