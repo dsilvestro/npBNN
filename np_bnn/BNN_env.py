@@ -11,7 +11,7 @@ class npBNN():
     def __init__(self, dat, n_nodes = [50, 5],
                  use_bias_node=1, init_std=0.1, p_scale=1,
                  prior_f=1, hyper_p=0, freq_indicator=0, w_bound = np.infty,
-                 pickle_file="",seed=1234):
+                 pickle_file="",seed=1234, use_class_weights=0):
         # prior_f: 0) uniform 1) normal 2) cauchy
         # to change the boundaries of a uniform prior use -p_scale
         # hyper_p: 0) no hyperpriors, 1) 1 per layer, 2) 1 per input node, 3) 1 per node
@@ -57,7 +57,15 @@ class npBNN():
             self._labels_reset[self._labels==i] = j
             self._test_labels_reset[self._test_labels==i] = j
             j += 1
-
+        
+        if use_class_weights:
+            class_counts = np.unique(self._labels_reset, return_counts=True)[1]
+            self._class_w = 1 / (class_counts / np.max(class_counts))
+            print("Using class weights:", self._class_w)
+        else:
+            self._class_w = []
+            
+        
         # init weights
         if pickle_file == "":
             # 1st layer
@@ -167,7 +175,7 @@ class MCMC():
         if sample_from_prior:
             self._logLik = 0
         else:
-            self._logLik = calc_likelihood(self._y, bnn_obj._labels_reset, bnn_obj._sample_id)
+            self._logLik = calc_likelihood(self._y, bnn_obj._labels_reset, bnn_obj._sample_id, bnn_obj._class_w)
         self._logPrior = bnn_obj.calc_prior()
         self._logPost = self._logLik + self._logPrior
         self._accuracy = CalcAccuracy(self._y, bnn_obj._labels)
@@ -207,7 +215,7 @@ class MCMC():
         if self._sample_from_prior:
             logLik_prime = 0
         else:
-            logLik_prime = calc_likelihood(y_prime, bnn_obj._labels_reset, bnn_obj._sample_id)
+            logLik_prime = calc_likelihood(y_prime, bnn_obj._labels_reset, bnn_obj._sample_id, bnn_obj._class_w)
         logPost_prime = logLik_prime + logPrior_prime
 
         if (logPost_prime - self._logPost) * self._temperature >= np.log(np.random.random()):

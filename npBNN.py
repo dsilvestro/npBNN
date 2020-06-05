@@ -23,10 +23,10 @@ dat = BNN_files.get_data(f,l,seed=rseed,testsize=0.1) # 10% test set
 n_nodes_list = [5, 5] # 2 hidden layers with 5 nodes each
 prior = 1 # 0) uniform, 1) normal, 2) Cauchy, 3) Laplace
 p_scale = 1 # std for Normal, scale parameter for Cauchy and Laplace, boundaries for Uniform
-
+use_class_weight = 0 # set to 1 to use class weights for unbalanced classes
 
 # set up the BNN model
-bnn = BNN_env.npBNN(dat, n_nodes = n_nodes_list,
+bnn = BNN_env.npBNN(dat, n_nodes = n_nodes_list, use_class_weights=use_class_weight,
                  use_bias_node = 1, prior_f = prior, p_scale = p_scale, seed=rseed)
 
 
@@ -57,9 +57,11 @@ while True:
         break
 
 
-# make predictions based on MCMC's estimated weights
+# make predictions based on MCMC's estimated weights (test data)
 post_pr = BNN_lib.predictBNN(dat['test_data'], pickle_file=logger._w_file, test_labels=dat['test_labels'])
 
+# make predictions based on MCMC's estimated weights (train data)
+post_pr = BNN_lib.predictBNN(dat['data'], pickle_file=logger._w_file, test_labels=dat['labels'])
 
 
 

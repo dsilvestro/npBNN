@@ -8,8 +8,11 @@ import pickle
 small_number = 1e-10
 
 # likelihood function
-def calc_likelihood(prediction, labels, sample_id):
-    return np.sum(np.log(prediction[sample_id, labels]))
+def calc_likelihood(prediction, labels, sample_id, class_weight=[]):
+    if len(class_weight):
+        return np.sum(np.log(prediction[sample_id, labels])*class_weight[labels])
+    else:
+        return np.sum(np.log(prediction[sample_id, labels]))
 
 
 # ReLU function
