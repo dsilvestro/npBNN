@@ -1,13 +1,10 @@
-import pickle
 import numpy as np
-import scipy.stats
-import glob,os,sys,argparse
-import pickle
+
 np.set_printoptions(suppress= 1)
 np.set_printoptions(precision=3)
 
 # load BNN modules
-from np_bnn import BNN_env, BNN_files, BNN_plot, BNN_lib
+from np_bnn import BNN_env, BNN_files, BNN_lib
 
 # set random seed
 rseed = 1234
@@ -16,7 +13,10 @@ np.random.seed(rseed)
 # load data (2 files: features and labels)
 f= "./example_files/data_features.txt"
 l= "./example_files/data_labels.txt"
-dat = BNN_files.get_data(f,l,seed=rseed,testsize=0.1) # 10% test set
+# with testsize=0.1, 10% of the data are randomly selected as test set
+# if all_class_in_testset = 1: 10% of the samples and a minimum of 1 sample
+# for each class are represented in the test set
+dat = BNN_files.get_data(f,l,seed=rseed,testsize=0.1, all_class_in_testset=1) # 10% test set
 
 
 # set up model architecture and priors

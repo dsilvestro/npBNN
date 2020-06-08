@@ -10,13 +10,14 @@ import csv
 from np_bnn import BNN_env
 
 # get data
-def get_data(f,l,testsize=0.1, batch_training=0,seed=1234):
+def get_data(f,l,testsize=0.1, batch_training=0,seed=1234, all_class_in_testset=1):
     np.random.seed(seed)
     try: tot_x = np.load(f)
     except(ValueError): tot_x = np.loadtxt(f)
     tot_labels = np.loadtxt(l,dtype=str)
     tot_labels_numeric = turn_labels_to_numeric(tot_labels, l)
-    x, labels, x_test, labels_test = randomize_data(tot_x, tot_labels_numeric,testsize=testsize)
+    x, labels, x_test, labels_test = randomize_data(tot_x, tot_labels_numeric,testsize=testsize,
+                                                    all_class_in_testset=all_class_in_testset)
 
     if batch_training:
         indx = np.random.randint(0,len(labels),batch_training)
@@ -67,12 +68,29 @@ def init_output_files(bnn_obj, filename="BNN", sample_from_prior=0, outpath=""):
     return wlog, logfile, w_file_name
 
 
-def randomize_data(tot_x, tot_labels, testsize=0.1):
+def randomize_data(tot_x, tot_labels, testsize=0.1, all_class_in_testset=1):
     rnd_order = np.random.choice(range(len(tot_labels)), len(tot_labels), replace=False)
     tot_x = tot_x[rnd_order]
     tot_labels = tot_labels[rnd_order]
     test_set_ind = int(testsize * len(tot_labels))
-    if test_set_ind == 0:
+
+    if all_class_in_testset:
+        test_set_ind = []
+
+        for i in np.unique(tot_labels):
+            ind = np.where(tot_labels == i)[0]
+            print(i, len(ind))
+            test_set_ind = test_set_ind + list(np.random.choice(ind, np.max([1, int(testsize*len(ind))])))
+
+        test_set_ind = np.array(test_set_ind)
+        x_test = tot_x[test_set_ind]
+        labels_test = tot_labels[test_set_ind]
+        train_ind = np.array([z for z in range(tot_labels.size) if not z in test_set_ind])
+        print(train_ind)
+
+        x = tot_x[train_ind]
+        labels = tot_labels[train_ind]
+    elif test_set_ind == 0:
         x_test = []
         labels_test = []
         x = tot_x
