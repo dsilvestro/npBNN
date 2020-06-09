@@ -79,14 +79,12 @@ def randomize_data(tot_x, tot_labels, testsize=0.1, all_class_in_testset=1):
 
         for i in np.unique(tot_labels):
             ind = np.where(tot_labels == i)[0]
-            print(i, len(ind))
             test_set_ind = test_set_ind + list(np.random.choice(ind, np.max([1, int(testsize*len(ind))])))
 
         test_set_ind = np.array(test_set_ind)
         x_test = tot_x[test_set_ind]
         labels_test = tot_labels[test_set_ind]
         train_ind = np.array([z for z in range(tot_labels.size) if not z in test_set_ind])
-        print(train_ind)
 
         x = tot_x[train_ind]
         labels = tot_labels[train_ind]
