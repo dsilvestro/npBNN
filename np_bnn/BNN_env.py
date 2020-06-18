@@ -158,7 +158,7 @@ class npBNN():
 class MCMC():
     def __init__(self, bnn_obj,update_f=[0.05, 0.05, 0.8, 0.01], update_ws=[0.05, 0.075, 0.05],
                  temperature = 1, n_iteration=100000, sampling_f=100, print_f=1000, n_post_samples=1000,
-                 update_function=UpdateNormal, sample_from_prior=0, run_ID=""):
+                 update_function=UpdateNormal, sample_from_prior=0, run_ID="", init_additional_prob=0):
         if run_ID == "":
             self._runID = bnn_obj._seed
         else:
@@ -176,7 +176,7 @@ class MCMC():
             self._logLik = 0
         else:
             self._logLik = calc_likelihood(self._y, bnn_obj._labels_reset, bnn_obj._sample_id, bnn_obj._class_w)
-        self._logPrior = bnn_obj.calc_prior()
+        self._logPrior = bnn_obj.calc_prior() + init_additional_prob
         self._logPost = self._logLik + self._logPrior
         self._accuracy = CalcAccuracy(self._y, bnn_obj._labels)
         if len(bnn_obj._test_data) > 0:
@@ -192,7 +192,7 @@ class MCMC():
         self._sample_from_prior = sample_from_prior
 
 
-    def mh_step(self, bnn_obj):
+    def mh_step(self, bnn_obj, additional_prob=0):
         w_layers_prime = []
         tmp = bnn_obj._data + 0
         indicators_prime = bnn_obj._indicators + 0
@@ -211,7 +211,7 @@ class MCMC():
             tmp = RunHiddenLayer(tmp, w_layers_prime_temp)
         y_prime = SoftMax(tmp)
 
-        logPrior_prime = bnn_obj.calc_prior(w=w_layers_prime)
+        logPrior_prime = bnn_obj.calc_prior(w=w_layers_prime) + additional_prob
         if self._sample_from_prior:
             logLik_prime = 0
         else:
