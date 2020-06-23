@@ -155,6 +155,14 @@ class npBNN():
     def reset_indicators(self,ind):
         self._indicators = ind
 
+    def update_data(self, data_dict):
+        self._data = data_dict['data']
+        self._labels = data_dict['labels']
+        self._test_data = data_dict['test_data']
+        self._test_labels = data_dict['test_labels']
+
+
+
 class MCMC():
     def __init__(self, bnn_obj,update_f=[0.05, 0.05, 0.8, 0.01], update_ws=[0.05, 0.075, 0.05],
                  temperature = 1, n_iteration=100000, sampling_f=100, print_f=1000, n_post_samples=1000,
@@ -190,6 +198,7 @@ class MCMC():
         self._n_post_samples = n_post_samples
         self.update_function = update_function
         self._sample_from_prior = sample_from_prior
+        self._last_accepted = 1
 
 
     def mh_step(self, bnn_obj, additional_prob=0):
@@ -234,6 +243,9 @@ class MCMC():
             else:
                 self._y_test = []
                 self._test_accuracy = 0
+            self._last_accepted = 1
+        else:
+            self._last_accepted = 0
 
         self._current_iteration += 1
 

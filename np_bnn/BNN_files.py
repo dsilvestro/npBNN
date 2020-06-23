@@ -44,7 +44,7 @@ def init_output_files(bnn_obj, filename="BNN", sample_from_prior=0, outpath=""):
     if sample_from_prior:
         ind = ind + "_prior"
     ind =  ind + "_%s" % bnn_obj._seed
-    outname = "%s_p%s_h%s_l%s_s%s_b%s%s" % (filename, bnn_obj._prior,bnn_obj._hyper_p, "_".join(map(str, \
+    outname = "%s_p%s_h%s_l%s_s%s_b%s%s" % (filename, bnn_obj._prior,bnn_obj._hyper_p, "_".join(map(str,
                                             bnn_obj._n_nodes)), bnn_obj._p_scale, bnn_obj._w_bound, ind)
                                             
     logfile_name = os.path.join(outpath, outname + ".log")
