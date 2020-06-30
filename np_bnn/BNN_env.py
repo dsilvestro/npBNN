@@ -258,13 +258,14 @@ class MCMC():
 
 
 class postLogger():
-    def __init__(self, bnn_obj, filename="BNN", wdir="", sample_from_prior=0):
-        wlog, logfile, w_file = np_bnn.BNN_files.init_output_files(bnn_obj, filename, sample_from_prior, outpath=wdir)
+    def __init__(self, bnn_obj, filename="BNN", wdir="", sample_from_prior=0, add_prms=None):
+        wlog, logfile, w_file = np_bnn.BNN_files.init_output_files(bnn_obj, filename, sample_from_prior,
+                                                                   outpath=wdir,add_prms=add_prms)
         self._wlog = wlog
         self._logfile = logfile
         self._w_file = w_file
 
-    def log_sample(self, bnn_obj, mcmc_obj):
+    def log_sample(self, bnn_obj, mcmc_obj, add_prms=None):
         row = [mcmc_obj._current_iteration, mcmc_obj._logPost, mcmc_obj._logLik, mcmc_obj._logPrior,
                mcmc_obj._accuracy, mcmc_obj._test_accuracy] + list(mcmc_obj._label_freq)
         for i in range(bnn_obj._n_layers):
@@ -276,6 +277,8 @@ class postLogger():
                     row.append(np.mean(bnn_obj._prior_scale[i]))
         if bnn_obj._freq_indicator > 0:
             row.append(np.mean(bnn_obj._indicators))
+        if add_prms:
+            row = row + add_prms
         self._wlog.writerow(row)
         self._logfile.flush()
 

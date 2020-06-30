@@ -35,7 +35,7 @@ def save_data(dat, lab, outname="data", test_dat=[], test_lab=[]):
         np.savetxt(outname + "_test_features.txt", test_dat, delimiter="\t")
         np.savetxt(outname + "_test_labeles.txt", test_lab.astype(int), delimiter="\t")
 
-def init_output_files(bnn_obj, filename="BNN", sample_from_prior=0, outpath=""):
+def init_output_files(bnn_obj, filename="BNN", sample_from_prior=0, outpath="",add_prms=None):
     'prior_f = 0, p_scale = 1, hyper_p = 0, freq_indicator = 0'
     if bnn_obj._freq_indicator ==0:
         ind = ""
@@ -63,6 +63,8 @@ def init_output_files(bnn_obj, filename="BNN", sample_from_prior=0, outpath=""):
                 head.append("mean_prior_std_w%s" % i)
     if bnn_obj._freq_indicator:
         head.append("mean_ind")
+    if add_prms:
+        head = head + add_prms
     wlog = csv.writer(logfile, delimiter='\t')
     wlog.writerow(head)
     return wlog, logfile, w_file_name
