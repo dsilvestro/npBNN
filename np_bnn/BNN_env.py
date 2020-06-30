@@ -258,9 +258,9 @@ class MCMC():
 
 
 class postLogger():
-    def __init__(self, bnn_obj, filename="BNN", wdir="", sample_from_prior=0, add_prms=None):
+    def __init__(self, bnn_obj, filename="BNN", wdir="", sample_from_prior=0, add_prms=None, continue_logfile=False):
         wlog, logfile, w_file = np_bnn.BNN_files.init_output_files(bnn_obj, filename, sample_from_prior,
-                                                                   outpath=wdir,add_prms=add_prms)
+                                                                   outpath=wdir,add_prms=add_prms,continue_logfile=continue_logfile)
         self._wlog = wlog
         self._logfile = logfile
         self._w_file = w_file

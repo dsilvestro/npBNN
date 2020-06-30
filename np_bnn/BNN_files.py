@@ -35,7 +35,7 @@ def save_data(dat, lab, outname="data", test_dat=[], test_lab=[]):
         np.savetxt(outname + "_test_features.txt", test_dat, delimiter="\t")
         np.savetxt(outname + "_test_labeles.txt", test_lab.astype(int), delimiter="\t")
 
-def init_output_files(bnn_obj, filename="BNN", sample_from_prior=0, outpath="",add_prms=None):
+def init_output_files(bnn_obj, filename="BNN", sample_from_prior=0, outpath="",add_prms=None, continue_logfile=False):
     'prior_f = 0, p_scale = 1, hyper_p = 0, freq_indicator = 0'
     if bnn_obj._freq_indicator ==0:
         ind = ""
@@ -49,7 +49,7 @@ def init_output_files(bnn_obj, filename="BNN", sample_from_prior=0, outpath="",a
                                             
     logfile_name = os.path.join(outpath, outname + ".log")
     w_file_name = os.path.join(outpath, outname + ".pkl")
-    logfile = open(logfile_name, "w")
+    
     head = ["it", "posterior", "likelihood", "prior", "accuracy", "test_accuracy"]
     for i in range(bnn_obj._size_output):
         head.append("f_C%s" % i)
@@ -65,8 +65,15 @@ def init_output_files(bnn_obj, filename="BNN", sample_from_prior=0, outpath="",a
         head.append("mean_ind")
     if add_prms:
         head = head + add_prms
-    wlog = csv.writer(logfile, delimiter='\t')
-    wlog.writerow(head)
+
+    if not continue_logfile:
+        logfile = open(logfile_name, "w")
+        wlog = csv.writer(logfile, delimiter='\t')    
+        wlog.writerow(head) 
+    else:
+        logfile = open(logfile_name, "a")
+        wlog = csv.writer(logfile, delimiter='\t')    
+
     return wlog, logfile, w_file_name
 
 
