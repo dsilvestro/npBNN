@@ -255,6 +255,8 @@ class MCMC():
         self._logPost = self._logLik + self._logPrior
         self._current_iteration += 1
 
+    def reset_update_n(self, n):
+        self._update_n = n
 
 
 class postLogger():
