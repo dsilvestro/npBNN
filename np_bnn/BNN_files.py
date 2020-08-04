@@ -23,7 +23,7 @@ def get_data(f,l,testsize=0.1, batch_training=0,seed=1234, all_class_in_testset=
         indx = np.random.randint(0,len(labels),batch_training)
         x = x[indx]
         labels = labels[indx]
-        
+
     return {'data': x, 'labels': labels, 'label_dict': np.unique(tot_labels),
             'test_data': x_test, 'test_labels': labels_test}
 
@@ -35,7 +35,8 @@ def save_data(dat, lab, outname="data", test_dat=[], test_lab=[]):
         np.savetxt(outname + "_test_features.txt", test_dat, delimiter="\t")
         np.savetxt(outname + "_test_labeles.txt", test_lab.astype(int), delimiter="\t")
 
-def init_output_files(bnn_obj, filename="BNN", sample_from_prior=0, outpath="",add_prms=None, continue_logfile=False):
+def init_output_files(bnn_obj, filename="BNN", sample_from_prior=0, outpath="",add_prms=None,
+                      continue_logfile=False, log_all_weights=0):
     'prior_f = 0, p_scale = 1, hyper_p = 0, freq_indicator = 0'
     if bnn_obj._freq_indicator ==0:
         ind = ""
@@ -46,10 +47,16 @@ def init_output_files(bnn_obj, filename="BNN", sample_from_prior=0, outpath="",a
     ind =  ind + "_%s" % bnn_obj._seed
     outname = "%s_p%s_h%s_l%s_s%s_b%s%s" % (filename, bnn_obj._prior,bnn_obj._hyper_p, "_".join(map(str,
                                             bnn_obj._n_nodes)), bnn_obj._p_scale, bnn_obj._w_bound, ind)
-                                            
+
     logfile_name = os.path.join(outpath, outname + ".log")
-    w_file_name = os.path.join(outpath, outname + ".pkl")
-    
+    if not log_all_weights:
+        w_file_name = os.path.join(outpath, outname + ".pkl")
+        wweights = None
+    else:
+        w_file_name = os.path.join(outpath, outname + "_W.log")
+        w_file_name = open(w_file_name, "w")
+        head_w = ["it"]
+
     head = ["it", "posterior", "likelihood", "prior", "accuracy", "test_accuracy"]
     for i in range(bnn_obj._size_output):
         head.append("f_C%s" % i)
@@ -61,6 +68,8 @@ def init_output_files(bnn_obj, filename="BNN", sample_from_prior=0, outpath="",a
                 head.append("prior_std_w%s" % i)
             else:
                 head.append("mean_prior_std_w%s" % i)
+        if log_all_weights:
+            head_w = head_w + ["w_%s_%s" % (i, j) for j in range(bnn_obj._w_layers[i].size)]
     if bnn_obj._freq_indicator:
         head.append("mean_ind")
     if add_prms:
@@ -68,13 +77,17 @@ def init_output_files(bnn_obj, filename="BNN", sample_from_prior=0, outpath="",a
 
     if not continue_logfile:
         logfile = open(logfile_name, "w")
-        wlog = csv.writer(logfile, delimiter='\t')    
-        wlog.writerow(head) 
+        wlog = csv.writer(logfile, delimiter='\t')
+        wlog.writerow(head)
     else:
         logfile = open(logfile_name, "a")
-        wlog = csv.writer(logfile, delimiter='\t')    
+        wlog = csv.writer(logfile, delimiter='\t')
 
-    return wlog, logfile, w_file_name
+    if log_all_weights:
+        wweights = csv.writer(w_file_name, delimiter='\t')
+        wweights.writerow(head_w)
+
+    return wlog, logfile, w_file_name, wweights
 
 
 def randomize_data(tot_x, tot_labels, testsize=0.1, all_class_in_testset=1):

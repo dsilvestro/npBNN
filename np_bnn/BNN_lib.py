@@ -7,7 +7,7 @@ np.set_printoptions(precision=3) # rounds all array elements to 3rd digit
 import pickle
 small_number = 1e-10
 
-# likelihood function
+# likelihood function (Categorical)
 def calc_likelihood(prediction, labels, sample_id, class_weight=[]):
     if len(class_weight):
         return np.sum(np.log(prediction[sample_id, labels])*class_weight[labels])
