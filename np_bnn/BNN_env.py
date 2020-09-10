@@ -166,7 +166,8 @@ class npBNN():
 class MCMC():
     def __init__(self, bnn_obj, update_f=[0.05, 0.05, 0.8, 0.01], update_ws=[0.05, 0.075, 0.05],
                  temperature=1, n_iteration=100000, sampling_f=100, print_f=1000, n_post_samples=1000,
-                 update_function=UpdateNormal, sample_from_prior=0, run_ID="", init_additional_prob=0):
+                 update_function=UpdateNormal, sample_from_prior=0, run_ID="", init_additional_prob=0,
+                 likelihood_tempering=1):
         if run_ID == "":
             self._runID = bnn_obj._seed
         else:
@@ -185,6 +186,7 @@ class MCMC():
             self._logLik = 0
         else:
             self._logLik = calc_likelihood(self._y, bnn_obj._labels_reset, bnn_obj._sample_id, bnn_obj._class_w)
+            self._logLik *= likelihood_tempering
         self._logPrior = bnn_obj.calc_prior() + init_additional_prob
         self._logPost = self._logLik + self._logPrior
         self._accuracy = CalcAccuracy(self._y, bnn_obj._labels)
@@ -200,6 +202,7 @@ class MCMC():
         self.update_function = update_function
         self._sample_from_prior = sample_from_prior
         self._last_accepted = 1
+        self._lik_temp = likelihood_tempering
 
     def mh_step(self, bnn_obj, additional_prob=0):
         w_layers_prime = []
@@ -225,7 +228,7 @@ class MCMC():
             logLik_prime = 0
         else:
             logLik_prime = calc_likelihood(y_prime, bnn_obj._labels_reset, bnn_obj._sample_id, bnn_obj._class_w)
-        logPost_prime = logLik_prime + logPrior_prime
+        logPost_prime = logLik_prime * self._lik_temp + logPrior_prime
 
         if (logPost_prime - self._logPost) * self._temperature >= np.log(np.random.random()):
             # print(logPost_prime, self._logPost)
