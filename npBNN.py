@@ -1,7 +1,5 @@
 import numpy as np
-
-np.set_printoptions(suppress=True)
-np.set_printoptions(precision=3)
+np.set_printoptions(suppress=True, precision=3)
 
 # load BNN modules
 from np_bnn import BNN_env, BNN_files, BNN_lib
@@ -35,11 +33,11 @@ sample_from_prior = 0 # set to 1 to run an MCMC sampling the parameters from the
 
 mcmc = BNN_env.MCMC(bnn,update_f=[0.05, 0.04, 0.07, 0.02], update_ws=[0.075, 0.075, 0.075],
                  temperature = 1, n_iteration=50000, sampling_f=100, print_f=1000, n_post_samples=100,
-                 sample_from_prior=sample_from_prior)
+                 sample_from_prior=sample_from_prior, likelihood_tempering=1)
 
 
 # initialize output files
-logger = BNN_env.postLogger(bnn, filename="BNN", log_all_weights=0)
+logger = BNN_env.postLogger(bnn, filename="BNN_t1", log_all_weights=0)
 
 
 # run MCMC
@@ -58,7 +56,7 @@ while True:
 
 
 # make predictions based on MCMC's estimated weights (test data)
-post_pr = BNN_lib.predictBNN(dat['test_data'], pickle_file=logger._w_file, test_labels=dat['test_labels'])
+post_pr_test = BNN_lib.predictBNN(dat['test_data'], pickle_file=logger._w_file, test_labels=dat['test_labels'])
 
 # make predictions based on MCMC's estimated weights (train data)
 post_pr = BNN_lib.predictBNN(dat['data'], pickle_file=logger._w_file, test_labels=dat['labels'])
