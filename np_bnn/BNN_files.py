@@ -2,8 +2,6 @@ import pickle
 import numpy as np
 import scipy.stats
 from np_bnn.BNN_lib import *
-np.set_printoptions(suppress= 1) # prints floats, no scientific notation
-np.set_printoptions(precision=3) # rounds all array elements to 3rd digit
 import os
 import csv
 
@@ -74,7 +72,8 @@ def init_output_files(bnn_obj, filename="BNN", sample_from_prior=0, outpath="",a
         head.append("mean_ind")
     if add_prms:
         head = head + add_prms
-
+    head.append("mcmc_id")
+    
     if not continue_logfile:
         logfile = open(logfile_name, "w")
         wlog = csv.writer(logfile, delimiter='\t')
