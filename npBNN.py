@@ -37,7 +37,7 @@ mcmc = BNN_env.MCMC(bnn,update_f=[0.05, 0.04, 0.07, 0.02], update_ws=[0.075, 0.0
 
 
 # initialize output files
-logger = BNN_env.postLogger(bnn, filename="BNN_t1", log_all_weights=0)
+logger = BNN_env.postLogger(bnn, filename="BNN", log_all_weights=0)
 
 
 # run MCMC

@@ -4,9 +4,9 @@ import numpy as np
 import scipy.stats
 from np_bnn.BNN_lib import *
 import np_bnn.BNN_files
-
-np.set_printoptions(suppress=1)  # prints floats, no scientific notation
-np.set_printoptions(precision=3)  # rounds all array elements to 3rd digit
+import random, numpy
+from numpy.random import MT19937
+from numpy.random import RandomState, SeedSequence
 
 
 class npBNN():
@@ -167,7 +167,7 @@ class MCMC():
     def __init__(self, bnn_obj, update_f=[0.05, 0.05, 0.8, 0.01], update_ws=[0.05, 0.075, 0.05],
                  temperature=1, n_iteration=100000, sampling_f=100, print_f=1000, n_post_samples=1000,
                  update_function=UpdateNormal, sample_from_prior=0, run_ID="", init_additional_prob=0,
-                 likelihood_tempering=1):
+                 likelihood_tempering=1,mcmc_id=0,randomize_seed=False):
         if run_ID == "":
             self._runID = bnn_obj._seed
         else:
@@ -185,8 +185,11 @@ class MCMC():
         if sample_from_prior:
             self._logLik = 0
         else:
-            self._logLik = calc_likelihood(self._y, bnn_obj._labels_reset, bnn_obj._sample_id, bnn_obj._class_w)
-            self._logLik *= likelihood_tempering
+            self._logLik = calc_likelihood(self._y,
+                                           bnn_obj._labels_reset,
+                                           bnn_obj._sample_id,
+                                           bnn_obj._class_w,
+                                           likelihood_tempering)
         self._logPrior = bnn_obj.calc_prior() + init_additional_prob
         self._logPost = self._logLik + self._logPrior
         self._accuracy = CalcAccuracy(self._y, bnn_obj._labels)
@@ -203,15 +206,21 @@ class MCMC():
         self._sample_from_prior = sample_from_prior
         self._last_accepted = 1
         self._lik_temp = likelihood_tempering
+        self._mcmc_id = mcmc_id
+        self._randomize_seed = randomize_seed
+        self._rs = RandomState(MT19937(SeedSequence(1234)))
 
-    def mh_step(self, bnn_obj, additional_prob=0):
+    def mh_step(self, bnn_obj, additional_prob=0, return_bnn=False):
+        if self._randomize_seed:
+            self._rs = RandomState(MT19937(SeedSequence(self._current_iteration)))
+
         w_layers_prime = []
         tmp = bnn_obj._data + 0
         indicators_prime = bnn_obj._indicators + 0
         for i in range(bnn_obj._n_layers):
             if np.random.random() > bnn_obj._freq_indicator or i > 0:
                 update, indx = self.update_function(bnn_obj._w_layers[i], d=self._update_ws[i], n=self._update_n[i],
-                                                    Mb=bnn_obj._w_bound, mb=-bnn_obj._w_bound)
+                                                    Mb=bnn_obj._w_bound, mb=-bnn_obj._w_bound, rs=self._rs)
                 w_layers_prime.append(update)
             else:
                 w_layers_prime.append(bnn_obj._w_layers[i] + 0)
@@ -227,10 +236,15 @@ class MCMC():
         if self._sample_from_prior:
             logLik_prime = 0
         else:
-            logLik_prime = calc_likelihood(y_prime, bnn_obj._labels_reset, bnn_obj._sample_id, bnn_obj._class_w)
-        logPost_prime = logLik_prime * self._lik_temp + logPrior_prime
-
-        if (logPost_prime - self._logPost) * self._temperature >= np.log(np.random.random()):
+            logLik_prime = calc_likelihood(y_prime,
+                                           bnn_obj._labels_reset,
+                                           bnn_obj._sample_id,
+                                           bnn_obj._class_w,
+                                           self._lik_temp)
+        logPost_prime = logLik_prime + logPrior_prime
+        # rrr= np.log(np.random.random())
+        rrr = np.log(self._rs.random())
+        if (logPost_prime - self._logPost) * self._temperature >= rrr:
             # print(logPost_prime, self._logPost)
             bnn_obj.reset_weights(w_layers_prime)
             bnn_obj.reset_indicators(indicators_prime)
@@ -251,6 +265,8 @@ class MCMC():
             self._last_accepted = 0
 
         self._current_iteration += 1
+        if return_bnn:
+            return bnn_obj, self
 
     def gibbs_step(self, bnn_obj):
         bnn_obj.sample_prior_scale()
@@ -260,6 +276,9 @@ class MCMC():
 
     def reset_update_n(self, n):
         self._update_n = n
+    
+    def reset_temperature(self,temp):
+        self._temperature = temp
 
 
 class postLogger():
@@ -289,6 +308,7 @@ class postLogger():
             row.append(np.mean(bnn_obj._indicators))
         if add_prms:
             row = row + add_prms
+        row.append(mcmc_obj._mcmc_id)
         self._wlog.writerow(row)
         self._logfile.flush()
 

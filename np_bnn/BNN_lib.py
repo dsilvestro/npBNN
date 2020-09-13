@@ -6,13 +6,17 @@ np.set_printoptions(suppress= 1) # prints floats, no scientific notation
 np.set_printoptions(precision=3) # rounds all array elements to 3rd digit
 import pickle
 small_number = 1e-10
+import random, numpy
+from numpy.random import MT19937
+from numpy.random import RandomState, SeedSequence
+
 
 # likelihood function (Categorical)
-def calc_likelihood(prediction, labels, sample_id, class_weight=[]):
+def calc_likelihood(prediction, labels, sample_id, class_weight=[], lik_temp=1):
     if len(class_weight):
-        return np.sum(np.log(prediction[sample_id, labels])*class_weight[labels])
+        return lik_temp * np.sum(np.log(prediction[sample_id, labels])*class_weight[labels])
     else:
-        return np.sum(np.log(prediction[sample_id, labels]))
+        return lik_temp * np.sum(np.log(prediction[sample_id, labels]))
 
 
 # ReLU function
@@ -40,11 +44,14 @@ def RunHiddenLayer(z0,w01):
     return z2
 
 
-def UpdateNormal(i, d=0.01, n=1, Mb=100, mb= -100):
-    Ix = np.random.randint(0, i.shape[0],n) # faster than np.random.choice
-    Iy = np.random.randint(0, i.shape[1],n)
+def UpdateNormal(i, d=0.01, n=1, Mb=100, mb= -100, rs=0):
+    if not rs:
+        rseed = random.randint(1000, 9999)
+        rs = RandomState(MT19937(SeedSequence(rseed)))
+    Ix = rs.randint(0, i.shape[0],n) # faster than np.random.choice
+    Iy = rs.randint(0, i.shape[1],n)
     z = np.zeros(i.shape) + i
-    z[Ix,Iy] = z[Ix,Iy] + np.random.normal(0, d[Ix,Iy], n)
+    z[Ix,Iy] = z[Ix,Iy] + rs.normal(0, d[Ix,Iy], n)
     z[z > Mb] = Mb- (z[z>Mb]-Mb)
     z[z < mb] = mb- (z[z<mb]-mb)
     return z, (Ix, Iy)
