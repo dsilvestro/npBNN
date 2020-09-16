@@ -55,7 +55,7 @@ def run_single_mcmc(arg_list):
     for i in range(n_iterations-1):
         mcmc_obj.mh_step(bnn_obj)
     bnn_obj_new, mcmc_obj_new = mcmc_obj.mh_step(bnn_obj, return_bnn=True)
-    return [bnn_obj_new, mcmc_obj]
+    return [bnn_obj_new, mcmc_obj_new]
 
 for mc3_it in range(500):
     with ProcessPoolExecutor(max_workers=n_chains) as pool:
