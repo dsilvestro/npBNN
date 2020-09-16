@@ -212,7 +212,7 @@ class MCMC():
 
     def mh_step(self, bnn_obj, additional_prob=0, return_bnn=False):
         if self._randomize_seed:
-            self._rs = RandomState(MT19937(SeedSequence(self._current_iteration)))
+            self._rs = RandomState(MT19937(SeedSequence(self._current_iteration + self._mcmc_id)))
 
         w_layers_prime = []
         tmp = bnn_obj._data + 0
