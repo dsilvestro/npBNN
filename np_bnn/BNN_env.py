@@ -337,19 +337,12 @@ class postLogger():
                 if mcmc_obj._counter == len(mcmc_obj._list_post_weights):
                     mcmc_obj._counter = 0
 
-            if len(mcmc_obj._list_post_weights) == mcmc_obj._n_post_samples:
-                SaveObject(mcmc_obj._list_post_weights, self._w_file)
-                mcmc_obj._list_post_weights = list()
+            SaveObject(mcmc_obj._list_post_weights, self._w_file)
+            mcmc_obj._list_post_weights = list()
         else:
             row = [mcmc_obj._current_iteration]
             for i in range(bnn_obj._n_layers):
                 row = row + [j for j in list(bnn_obj._w_layers[i].flatten())]
-            #     row = row + [np.mean(bnn_obj._w_layers[i]), np.std(bnn_obj._w_layers[i])]
-            #     if bnn_obj._hyper_p:
-            #         if bnn_obj._hyper_p == 1:
-            #             row.append(bnn_obj._prior_scale[i])
-            #         else:
-            #             row.append(np.mean(bnn_obj._prior_scale[i]))
             self._wweight.writerow(row)
             self._w_file.flush()
 
