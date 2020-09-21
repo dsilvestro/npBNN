@@ -286,6 +286,13 @@ class MCMC():
 
     def update_counter(self):
         self._counter += 1
+    
+    def update_list_post_weights(self, obj):
+        if len(self._list_post_weights) < self._n_post_samples:
+            self._list_post_weights.append(obj)
+        else:
+            self._list_post_weights[mcmc_obj._counter] = obj
+
 
 class postLogger():
     def __init__(self, bnn_obj, filename="BNN", wdir="", sample_from_prior=0, add_prms=None,
@@ -329,12 +336,7 @@ class postLogger():
                 tmp = bnn_obj._w_layers
             if add_prms:
                 tmp.append(add_prms)
-           
-            if len(mcmc_obj._list_post_weights) < mcmc_obj._n_post_samples:
-                mcmc_obj._list_post_weights.append(tmp)
-            else:
-                mcmc_obj._list_post_weights[mcmc_obj._counter] = tmp
-
+            mcmc_obj.update_list_post_weights(tmp)
             mcmc_obj.update_counter()
             if mcmc_obj._counter == len(mcmc_obj._list_post_weights):
                 mcmc_obj.reset_counter()
