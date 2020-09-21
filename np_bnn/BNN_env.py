@@ -200,8 +200,6 @@ class MCMC():
             self._y_test = []
             self._test_accuracy = 0
         self._label_freq = CalcLabelFreq(self._y)
-        self._list_post_weights = list()
-        self._n_post_samples = n_post_samples
         self.update_function = update_function
         self._sample_from_prior = sample_from_prior
         self._last_accepted = 1
@@ -210,6 +208,7 @@ class MCMC():
         self._randomize_seed = randomize_seed
         self._rs = RandomState(MT19937(SeedSequence(1234)))
         self._counter = 0
+        self._n_post_samples = n_post_samples
 
     def mh_step(self, bnn_obj, additional_prob=0, return_bnn=False):
         if self._randomize_seed:
@@ -281,22 +280,17 @@ class MCMC():
     def reset_temperature(self,temp):
         self._temperature = temp
     
-    def reset_counter(self):
-        self._counter = 0
-
-    def update_counter(self):
-        self._counter += 1
-    
-    def update_list_post_weights(self, obj):
-        if len(self._list_post_weights) < self._n_post_samples:
-            self._list_post_weights.append(obj)
-        else:
-            self._list_post_weights[mcmc_obj._counter] = obj
-
 
 class postLogger():
-    def __init__(self, bnn_obj, filename="BNN", wdir="", sample_from_prior=0, add_prms=None,
-                 continue_logfile=False, log_all_weights=0):
+    def __init__(self,
+                 bnn_obj,
+                 filename="BNN",
+                 wdir="",
+                 sample_from_prior=0,
+                 add_prms=None,
+                 continue_logfile=False,
+                 log_all_weights=0):
+        
         wlog, logfile, w_file, wweight = np_bnn.BNN_files.init_output_files(bnn_obj, filename, sample_from_prior,
                                                                             outpath=wdir, add_prms=add_prms,
                                                                             continue_logfile=continue_logfile,
@@ -306,6 +300,14 @@ class postLogger():
         self._w_file = w_file
         self._wweight = wweight
         self.log_all_weights = log_all_weights
+        self._counter = 0
+        self._list_post_weights = list()
+
+    def reset_counter(self):
+        self._counter = 0
+
+    def update_counter(self):
+        self._counter += 1
 
     def log_sample(self, bnn_obj, mcmc_obj, add_prms=None):
         row = [mcmc_obj._current_iteration, mcmc_obj._logPost, mcmc_obj._logLik, mcmc_obj._logPrior,
@@ -326,6 +328,7 @@ class postLogger():
         self._logfile.flush()
 
     def log_weights(self, bnn_obj, mcmc_obj, add_prms=None):
+        # print(mcmc_obj._current_iteration, self._counter, len(self._list_post_weights))
         if not self.log_all_weights:
             if bnn_obj._freq_indicator:
                 tmp = list()
@@ -336,11 +339,16 @@ class postLogger():
                 tmp = bnn_obj._w_layers
             if add_prms:
                 tmp.append(add_prms)
-            mcmc_obj.update_list_post_weights(tmp)
-            mcmc_obj.update_counter()
-            if mcmc_obj._counter == len(mcmc_obj._list_post_weights):
-                mcmc_obj.reset_counter()
-            SaveObject(mcmc_obj._list_post_weights, self._w_file)
+
+            # print(mcmc_obj._current_iteration, self._counter, len(self._list_post_weights))
+            if len(self._list_post_weights) < mcmc_obj._n_post_samples:
+                self._list_post_weights.append(tmp)
+            else:
+                self._list_post_weights[self._counter] = tmp
+            self.update_counter()
+            if self._counter == mcmc_obj._n_post_samples:
+                self.reset_counter()
+            SaveObject(self._list_post_weights, self._w_file)
         else:
             row = [mcmc_obj._current_iteration]
             for i in range(bnn_obj._n_layers):
