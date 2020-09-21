@@ -6,7 +6,7 @@ np.set_printoptions(suppress= 1) # prints floats, no scientific notation
 np.set_printoptions(precision=3) # rounds all array elements to 3rd digit
 import pickle
 small_number = 1e-10
-import random, numpy
+import random, sys
 from numpy.random import MT19937
 from numpy.random import RandomState, SeedSequence
 
