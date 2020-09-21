@@ -209,6 +209,7 @@ class MCMC():
         self._mcmc_id = mcmc_id
         self._randomize_seed = randomize_seed
         self._rs = RandomState(MT19937(SeedSequence(1234)))
+        self._counter = 0
 
     def mh_step(self, bnn_obj, additional_prob=0, return_bnn=False):
         if self._randomize_seed:
@@ -279,7 +280,12 @@ class MCMC():
     
     def reset_temperature(self,temp):
         self._temperature = temp
+    
+    def reset_counter(self):
+        self._counter = 0
 
+    def update_counter(self):
+        self._counter += 1
 
 class postLogger():
     def __init__(self, bnn_obj, filename="BNN", wdir="", sample_from_prior=0, add_prms=None,
@@ -312,33 +318,27 @@ class postLogger():
         self._wlog.writerow(row)
         self._logfile.flush()
 
-    def log_weights(self, bnn_obj, mcmc_obj):
+    def log_weights(self, bnn_obj, mcmc_obj, add_prms=None):
         if not self.log_all_weights:
-            if len(mcmc_obj._list_post_weights) < mcmc_obj._n_post_samples:
-                mcmc_obj._counter = 0
-                if bnn_obj._freq_indicator:
-                    tmp = list()
-                    tmp.append(bnn_obj._w_layers[0] * bnn_obj._indicators)
-                    for i in range(1, bnn_obj._n_layers):
-                        tmp.append(bnn_obj._w_layers[i])
-                    mcmc_obj._list_post_weights.append(tmp)
-                else:
-                    mcmc_obj._list_post_weights.append(bnn_obj._w_layers)
+            if bnn_obj._freq_indicator:
+                tmp = list()
+                tmp.append(bnn_obj._w_layers[0] * bnn_obj._indicators)
+                for i in range(1, bnn_obj._n_layers):
+                    tmp.append(bnn_obj._w_layers[i])
             else:
-                if bnn_obj._freq_indicator:
-                    tmp = list()
-                    tmp.append(bnn_obj._w_layers[0] * bnn_obj._indicators)
-                    for i in range(1, bnn_obj._n_layers):
-                        tmp.append(bnn_obj._w_layers[i])
-                    mcmc_obj._list_post_weights[mcmc_obj._counter] = tmp
-                else:
-                    mcmc_obj._list_post_weights[mcmc_obj._counter] = bnn_obj._w_layers
-                mcmc_obj._counter += 1
-                if mcmc_obj._counter == len(mcmc_obj._list_post_weights):
-                    mcmc_obj._counter = 0
+                tmp = bnn_obj._w_layers
+            if add_prms:
+                tmp.append(add_prms)
+           
+            if len(mcmc_obj._list_post_weights) < mcmc_obj._n_post_samples:
+                mcmc_obj._list_post_weights.append(tmp)
+            else:
+                mcmc_obj._list_post_weights[mcmc_obj._counter] = tmp
 
+            mcmc_obj.update_counter()
+            if mcmc_obj._counter == len(mcmc_obj._list_post_weights):
+                mcmc_obj.reset_counter()
             SaveObject(mcmc_obj._list_post_weights, self._w_file)
-            mcmc_obj._list_post_weights = list()
         else:
             row = [mcmc_obj._current_iteration]
             for i in range(bnn_obj._n_layers):
