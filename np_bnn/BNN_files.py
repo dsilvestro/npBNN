@@ -72,6 +72,7 @@ def init_output_files(bnn_obj, filename="BNN", sample_from_prior=0, outpath="",a
         head.append("mean_ind")
     if add_prms:
         head = head + add_prms
+    head.append("acc_prob")
     head.append("mcmc_id")
     
     if not continue_logfile:

@@ -43,6 +43,21 @@ def RunHiddenLayer(z0,w01):
     z2 = ReLU(z1)
     return z2
 
+def UpdateFixedNormal(i, d=1, n=1, Mb=100, mb= -100, rs=0):
+    if not rs:
+        rseed = random.randint(1000, 9999)
+        rs = RandomState(MT19937(SeedSequence(rseed)))
+    Ix = rs.randint(0, i.shape[0],n) # faster than np.random.choice
+    Iy = rs.randint(0, i.shape[1],n)
+    current_prm = i[Ix,Iy]
+    new_prm = rs.normal(0, d[Ix,Iy], n)
+    hastings = np.sum(scipy.stats.norm.logpdf(current_prm, 0, d[Ix,Iy]) - \
+               scipy.stats.norm.logpdf(new_prm, 0, d[Ix,Iy]))
+    z = np.zeros(i.shape) + i
+    z[Ix,Iy] = new_prm
+    z[z > Mb] = Mb- (z[z>Mb]-Mb)
+    z[z < mb] = mb- (z[z<mb]-mb)
+    return z, (Ix, Iy), hastings
 
 def UpdateNormal(i, d=0.01, n=1, Mb=100, mb= -100, rs=0):
     if not rs:
@@ -54,7 +69,8 @@ def UpdateNormal(i, d=0.01, n=1, Mb=100, mb= -100, rs=0):
     z[Ix,Iy] = z[Ix,Iy] + rs.normal(0, d[Ix,Iy], n)
     z[z > Mb] = Mb- (z[z>Mb]-Mb)
     z[z < mb] = mb- (z[z<mb]-mb)
-    return z, (Ix, Iy)
+    hastings = 0
+    return z, (Ix, Iy), hastings
 
 def UpdateUniform(i, d=0.1, n=1, Mb=100, mb= -100):
     Ix = np.random.randint(0, i.shape[0],n) # faster than np.random.choice
@@ -63,7 +79,8 @@ def UpdateUniform(i, d=0.1, n=1, Mb=100, mb= -100):
     z[Ix,Iy] = z[Ix,Iy] + np.random.uniform(-d[Ix,Iy], d[Ix,Iy], n)
     z[z > Mb] = Mb- (z[z>Mb]-Mb)
     z[z < mb] = mb- (z[z<mb]-mb)
-    return z, (Ix, Iy)
+    hastings = 0
+    return z, (Ix, Iy), hastings
 
 
 

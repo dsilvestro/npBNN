@@ -209,19 +209,22 @@ class MCMC():
         self._rs = RandomState(MT19937(SeedSequence(1234)))
         self._counter = 0
         self._n_post_samples = n_post_samples
+        self._accepted_states = 0
 
     def mh_step(self, bnn_obj, additional_prob=0, return_bnn=False):
         if self._randomize_seed:
             self._rs = RandomState(MT19937(SeedSequence(self._current_iteration + self._mcmc_id)))
 
+        hastings = 0
         w_layers_prime = []
         tmp = bnn_obj._data + 0
         indicators_prime = bnn_obj._indicators + 0
         for i in range(bnn_obj._n_layers):
             if np.random.random() > bnn_obj._freq_indicator or i > 0:
-                update, indx = self.update_function(bnn_obj._w_layers[i], d=self._update_ws[i], n=self._update_n[i],
+                update, indx, h = self.update_function(bnn_obj._w_layers[i], d=self._update_ws[i], n=self._update_n[i],
                                                     Mb=bnn_obj._w_bound, mb=-bnn_obj._w_bound, rs=self._rs)
                 w_layers_prime.append(update)
+                hastings += h
             else:
                 w_layers_prime.append(bnn_obj._w_layers[i] + 0)
                 indicators_prime = UpdateBinomial(bnn_obj._indicators, self._update_f[3], bnn_obj._indicators.shape)
@@ -242,9 +245,8 @@ class MCMC():
                                            bnn_obj._class_w,
                                            self._lik_temp)
         logPost_prime = logLik_prime + logPrior_prime
-        # rrr= np.log(np.random.random())
         rrr = np.log(self._rs.random())
-        if (logPost_prime - self._logPost) * self._temperature >= rrr:
+        if (logPost_prime - self._logPost) * self._temperature + hastings >= rrr:
             # print(logPost_prime, self._logPost)
             bnn_obj.reset_weights(w_layers_prime)
             bnn_obj.reset_indicators(indicators_prime)
@@ -261,6 +263,7 @@ class MCMC():
                 self._y_test = []
                 self._test_accuracy = 0
             self._last_accepted = 1
+            self._accepted_states += 1
         else:
             self._last_accepted = 0
 
@@ -323,6 +326,7 @@ class postLogger():
             row.append(np.mean(bnn_obj._indicators))
         if add_prms:
             row = row + add_prms
+        row.append(mcmc_obj._accepted_states / mcmc_obj._current_iteration)
         row.append(mcmc_obj._mcmc_id)
         self._wlog.writerow(row)
         self._logfile.flush()
