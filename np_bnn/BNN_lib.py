@@ -10,8 +10,33 @@ import random, sys
 from numpy.random import MT19937
 from numpy.random import RandomState, SeedSequence
 
+# Activation functions
+class genReLU():
+    def __init__(self, prm=np.zeros(1), trainable=False):
+        self._prm = prm
+        self._acc_prm = prm
+        self._trainable = trainable
+        # if alpha < 1 and non trainable: leaky ReLU (https://ai.stanford.edu/~amaas/papers/relu_hybrid_icml2013_final.pdf)
+        # if trainable: parameteric ReLU (https://arxiv.org/pdf/1502.01852.pdf)
+        if prm[0] == 0 and not trainable:
+            self._simpleReLU = True
+        else:
+            self._simpleReLU = False
+    def eval(self, z, layer_n):
+        if self._simpleReLU:
+            z[z < 0] = 0
+        else:
+            z[z < 0] = self._prm[layer_n] * z[z < 0]
+        return z
+    def reset_prm(self, prm):
+        self._prm = prm
+    
+    def reset_accepted_prm(self):
+        self._acc_prm = self._prm + 0
+
 
 # likelihood function (Categorical)
+# TODO: refactor this as a class
 def calc_likelihood(prediction, labels, sample_id, class_weight=[], lik_temp=1):
     if len(class_weight):
         return lik_temp * np.sum(np.log(prediction[sample_id, labels])*class_weight[labels])
@@ -19,16 +44,6 @@ def calc_likelihood(prediction, labels, sample_id, class_weight=[], lik_temp=1):
         return lik_temp * np.sum(np.log(prediction[sample_id, labels]))
 
 
-# Activation functions
-def ReLU(z):
-    z[z<0] = 0
-    return z
-
-def leakyReLU(z, alpha=0.3):
-    # TODO: expose alpha parameter for MCMC estimation
-    # TODO: implement activation function as a class
-    z[z<0] = alpha*z[z<0]
-    return z
 
 def MatrixMultiplication(x1,x2):
     z1 = np.einsum('nj,ij->ni', x1, x2, optimize=True)
@@ -43,9 +58,9 @@ def SoftMax(z):
     return scipy.special.softmax(z, axis=1)
 
 
-def RunHiddenLayer(z0,w01,actFun):
+def RunHiddenLayer(z0, w01, actFun, layer_n):
     z1 = MatrixMultiplication(z0, w01)
-    z2 = actFun(z1)
+    z2 = actFun.eval(z1, layer_n)
     return z2
 
 def UpdateFixedNormal(i, d=1, n=1, Mb=100, mb= -100, rs=0):
@@ -63,6 +78,18 @@ def UpdateFixedNormal(i, d=1, n=1, Mb=100, mb= -100, rs=0):
     z[z > Mb] = Mb- (z[z>Mb]-Mb)
     z[z < mb] = mb- (z[z<mb]-mb)
     return z, (Ix, Iy), hastings
+
+def UpdateNormal1D(i, d=0.01, n=1, Mb=100, mb= -100, rs=0):
+    if not rs:
+        rseed = random.randint(1000, 9999)
+        rs = RandomState(MT19937(SeedSequence(rseed)))
+    Ix = rs.randint(0, len(i),n) # faster than np.random.choice
+    z = np.zeros(i.shape) + i
+    z[Ix] = z[Ix] + rs.normal(0, d, n)
+    z[z > Mb] = Mb- (z[z>Mb]-Mb)
+    z[z < mb] = mb- (z[z<mb]-mb)
+    hastings = 0
+    return z, Ix, hastings
 
 def UpdateNormal(i, d=0.01, n=1, Mb=100, mb= -100, rs=0):
     if not rs:
@@ -150,7 +177,7 @@ def RunPredict(data, weights, actFun):
     # weights: list of 2D arrays
     tmp = data+0
     for i in range(len(weights)):
-        tmp = RunHiddenLayer(tmp,weights[i],actFun)
+        tmp = RunHiddenLayer(tmp,weights[i],actFun, i)
     # output
     y_predict = SoftMax(tmp)
     return y_predict
@@ -160,9 +187,9 @@ def RunPredictInd(data, weights, ind, actFun):
     tmp = data+0
     for i in range(len(weights)):
         if i ==0:
-            tmp = RunHiddenLayer(tmp,weights[i]*ind,actFun)
+            tmp = RunHiddenLayer(tmp,weights[i]*ind,actFun, i)
         else:
-            tmp = RunHiddenLayer(tmp,weights[i],actFun)
+            tmp = RunHiddenLayer(tmp,weights[i],actFun, i)
     # output
     y_predict = SoftMax(tmp)
     return y_predict

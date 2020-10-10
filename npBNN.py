@@ -19,10 +19,12 @@ dat = BNN_files.get_data(f,l,seed=rseed,testsize=0.1, all_class_in_testset=1) # 
 
 # set up model architecture and priors
 n_nodes_list = [5, 5] # 2 hidden layers with 5 nodes each
-activation_function = BNN_lib.leakyReLU # Available options: ReLU, leakyReLU(alpha=0.3)
+alphas = np.zeros(len(n_nodes_list)+1)
+activation_function = BNN_lib.genReLU(prm=alphas, trainable=True) # To use default ReLU: BNN_lib.genReLU()
 prior = 1 # 0) uniform, 1) normal, 2) Cauchy, 3) Laplace
 p_scale = 1 # std for Normal, scale parameter for Cauchy and Laplace, boundaries for Uniform
 use_class_weight = 0 # set to 1 to use class weights for unbalanced classes
+init_std = 0.1 # st dev of the initial weights
 
 # set up the BNN model
 bnn = BNN_env.npBNN(dat,
@@ -33,14 +35,14 @@ bnn = BNN_env.npBNN(dat,
                     prior_f=prior,
                     p_scale=p_scale,
                     seed=rseed,
-                    init_std=0.1)
+                    init_std=init_std)
 
 
 # set up the MCMC environment
 sample_from_prior = 0 # set to 1 to run an MCMC sampling the parameters from the prior only
 
 mcmc = BNN_env.MCMC(bnn,
-                    update_f=[0.05, 0.04, 0.07],
+                    update_f=[0.05, 0.05, 0.07],
                     update_ws=[0.075, 0.075, 0.075],
                     temperature = 1,
                     n_iteration=50000,

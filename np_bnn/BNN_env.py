@@ -13,7 +13,7 @@ class npBNN():
     def __init__(self, dat, n_nodes=[50, 5],
                  use_bias_node=1, init_std=0.1, p_scale=1,
                  prior_f=1, hyper_p=0, freq_indicator=0, w_bound=np.infty,
-                 pickle_file="", seed=1234, use_class_weights=0, actFun=ReLU):
+                 pickle_file="", seed=1234, use_class_weights=0, actFun=genReLU()):
         # prior_f: 0) uniform 1) normal 2) cauchy
         # to change the boundaries of a uniform prior use -p_scale
         # hyper_p: 0) no hyperpriors, 1) 1 per layer, 2) 1 per input node, 3) 1 per node
@@ -106,7 +106,11 @@ class npBNN():
         else:
             print("\nTraining set:", self._n_samples, "test set:", None)
         print("Number of features:", self._n_features)
-        print("N. of parameters:", np.sum(np.array([np.size(i) for i in self._w_layers])))
+        
+        n_params = np.sum(np.array([np.size(i) for i in self._w_layers]))
+        if self._act_fun._trainable:
+            n_params += self._n_layers
+        print("N. of parameters:", n_params)
         for w in self._w_layers: print(w.shape)
 
     # init prior functions
@@ -220,6 +224,15 @@ class MCMC():
         w_layers_prime = []
         tmp = bnn_obj._data + 0
         indicators_prime = bnn_obj._indicators + 0
+        
+        # if trainable prm in activation function
+        if bnn_obj._act_fun._trainable:
+            prm_tmp, _, h = UpdateNormal1D(bnn_obj._act_fun._acc_prm, d=0.05, n=1, Mb=1, mb=0, rs=self._rs)
+            r = 10
+            additional_prob += np.log(r) * -np.sum(prm_tmp)*r # aka exponential Exp(r)
+            hastings += h
+            bnn_obj._act_fun.reset_prm(prm_tmp)
+            
         for i in range(bnn_obj._n_layers):
             if np.random.random() > bnn_obj._freq_indicator or i > 0:
                 update, indx, h = self.update_function(bnn_obj._w_layers[i], d=self._update_ws[i], n=self._update_n[i],
@@ -233,7 +246,7 @@ class MCMC():
                 w_layers_prime_temp = w_layers_prime[i] * indicators_prime
             else:
                 w_layers_prime_temp = w_layers_prime[i]
-            tmp = RunHiddenLayer(tmp, w_layers_prime_temp,bnn_obj._act_fun)
+            tmp = RunHiddenLayer(tmp, w_layers_prime_temp,bnn_obj._act_fun, i)
         y_prime = SoftMax(tmp)
 
         logPrior_prime = bnn_obj.calc_prior(w=w_layers_prime) + additional_prob
@@ -252,6 +265,7 @@ class MCMC():
             # print(logPost_prime, self._logPost)
             bnn_obj.reset_weights(w_layers_prime)
             bnn_obj.reset_indicators(indicators_prime)
+            bnn_obj._act_fun.reset_accepted_prm()
             self._logPost = logPost_prime
             self._logLik = logLik_prime
             self._logPrior = logPrior_prime
@@ -329,6 +343,8 @@ class postLogger():
             row.append(np.mean(bnn_obj._indicators))
         if add_prms:
             row = row + add_prms
+        if bnn_obj._act_fun._trainable:
+            row = row + list(bnn_obj._act_fun._acc_prm)
         row.append(mcmc_obj._accepted_states / mcmc_obj._current_iteration)
         row.append(mcmc_obj._mcmc_id)
         self._wlog.writerow(row)
