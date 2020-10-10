@@ -2,7 +2,7 @@ import pickle
 import sys
 import numpy as np
 import scipy.stats
-from np_bnn.BNN_lib import *
+from  np_bnn.BNN_lib import *
 import np_bnn.BNN_files
 import random, numpy
 from numpy.random import MT19937
@@ -13,7 +13,7 @@ class npBNN():
     def __init__(self, dat, n_nodes=[50, 5],
                  use_bias_node=1, init_std=0.1, p_scale=1,
                  prior_f=1, hyper_p=0, freq_indicator=0, w_bound=np.infty,
-                 pickle_file="", seed=1234, use_class_weights=0):
+                 pickle_file="", seed=1234, use_class_weights=0, actFun=ReLU):
         # prior_f: 0) uniform 1) normal 2) cauchy
         # to change the boundaries of a uniform prior use -p_scale
         # hyper_p: 0) no hyperpriors, 1) 1 per layer, 2) 1 per input node, 3) 1 per node
@@ -82,6 +82,7 @@ class npBNN():
         self._w_layers = w_layers
 
         self._indicators = np.ones(self._w_layers[0].shape)
+        self._act_fun = actFun
 
         # init prior function
         if self._prior == 0:
@@ -181,7 +182,7 @@ class MCMC():
         self._sampling_f = sampling_f
         self._print_f = print_f
         self._current_iteration = 0
-        self._y = RunPredict(bnn_obj._data, bnn_obj._w_layers)
+        self._y = RunPredict(bnn_obj._data, bnn_obj._w_layers, bnn_obj._act_fun)
         if sample_from_prior:
             self._logLik = 0
         else:
@@ -194,7 +195,7 @@ class MCMC():
         self._logPost = self._logLik + self._logPrior
         self._accuracy = CalcAccuracy(self._y, bnn_obj._labels)
         if len(bnn_obj._test_data) > 0:
-            self._y_test = RunPredictInd(bnn_obj._test_data, bnn_obj._w_layers, bnn_obj._indicators)
+            self._y_test = RunPredictInd(bnn_obj._test_data, bnn_obj._w_layers, bnn_obj._indicators,bnn_obj._act_fun)
             self._test_accuracy = CalcAccuracy(self._y_test, bnn_obj._test_labels)
         else:
             self._y_test = []
@@ -232,13 +233,14 @@ class MCMC():
                 w_layers_prime_temp = w_layers_prime[i] * indicators_prime
             else:
                 w_layers_prime_temp = w_layers_prime[i]
-            tmp = RunHiddenLayer(tmp, w_layers_prime_temp)
+            tmp = RunHiddenLayer(tmp, w_layers_prime_temp,bnn_obj._act_fun)
         y_prime = SoftMax(tmp)
 
         logPrior_prime = bnn_obj.calc_prior(w=w_layers_prime) + additional_prob
         if self._sample_from_prior:
             logLik_prime = 0
         else:
+            # TODO: expose self._lik_temp as parameter that can be estimated by MCMC
             logLik_prime = calc_likelihood(y_prime,
                                            bnn_obj._labels_reset,
                                            bnn_obj._sample_id,
@@ -257,7 +259,8 @@ class MCMC():
             self._accuracy = CalcAccuracy(self._y, bnn_obj._labels_reset)
             self._label_freq = CalcLabelFreq(self._y)
             if len(bnn_obj._test_data) > 0:
-                self._y_test = RunPredictInd(bnn_obj._test_data, bnn_obj._w_layers, bnn_obj._indicators)
+                self._y_test = RunPredictInd(bnn_obj._test_data, bnn_obj._w_layers,
+                                             bnn_obj._indicators, bnn_obj._act_fun)
                 self._test_accuracy = CalcAccuracy(self._y_test, bnn_obj._test_labels_reset)
             else:
                 self._y_test = []

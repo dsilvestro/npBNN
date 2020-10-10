@@ -19,14 +19,19 @@ def calc_likelihood(prediction, labels, sample_id, class_weight=[], lik_temp=1):
         return lik_temp * np.sum(np.log(prediction[sample_id, labels]))
 
 
-# ReLU function
-def ReLU(zi):
-    z = np.copy(zi)
+# Activation functions
+def ReLU(z):
     z[z<0] = 0
     return z
 
+def leakyReLU(z, alpha=0.3):
+    # TODO: expose alpha parameter for MCMC estimation
+    # TODO: implement activation function as a class
+    z[z<0] = alpha*z[z<0]
+    return z
+
 def MatrixMultiplication(x1,x2):
-    z1 = np.einsum('nj,ij->ni', x1, x2)
+    z1 = np.einsum('nj,ij->ni', x1, x2, optimize=True)
     # same as:
     # for i in range(n_samples):
     # 	print(np.einsum('j,ij->i', x[i], w_in_l1))
@@ -38,9 +43,9 @@ def SoftMax(z):
     return scipy.special.softmax(z, axis=1)
 
 
-def RunHiddenLayer(z0,w01):
+def RunHiddenLayer(z0,w01,actFun):
     z1 = MatrixMultiplication(z0, w01)
-    z2 = ReLU(z1)
+    z2 = actFun(z1)
     return z2
 
 def UpdateFixedNormal(i, d=1, n=1, Mb=100, mb= -100, rs=0):
@@ -141,23 +146,23 @@ def SaveObject(obj, filename):
         pickle.dump(obj, output, pickle.HIGHEST_PROTOCOL)
 
 
-def RunPredict(data, weights):
+def RunPredict(data, weights, actFun):
     # weights: list of 2D arrays
     tmp = data+0
     for i in range(len(weights)):
-        tmp = RunHiddenLayer(tmp,weights[i])
+        tmp = RunHiddenLayer(tmp,weights[i],actFun)
     # output
     y_predict = SoftMax(tmp)
     return y_predict
 
-def RunPredictInd(data, weights, ind):
+def RunPredictInd(data, weights, ind, actFun):
     # weights: list of 2D arrays
     tmp = data+0
     for i in range(len(weights)):
         if i ==0:
-            tmp = RunHiddenLayer(tmp,weights[i]*ind)
+            tmp = RunHiddenLayer(tmp,weights[i]*ind,actFun)
         else:
-            tmp = RunHiddenLayer(tmp,weights[i])
+            tmp = RunHiddenLayer(tmp,weights[i],actFun)
     # output
     y_predict = SoftMax(tmp)
     return y_predict
@@ -228,7 +233,7 @@ def CalcFP_BF(y, y_p, lab, threshold=150):
     return np.sum(z[prediction != lab]) / len(prediction)
 
 
-def predictBNN(predict_features, pickle_file, test_labels=[], pickle_file_prior=0, threshold=0.95, bf=150):
+def predictBNN(predict_features, pickle_file, actFun, test_labels=[], pickle_file_prior=0, threshold=0.95, bf=150):
     import np_bnn.BNN_files
     import os
     n_features = predict_features.shape[1]
@@ -241,7 +246,7 @@ def predictBNN(predict_features, pickle_file, test_labels=[], pickle_file_prior=
 
     post_predictions = []
     for weights in post_weights:
-        pred = RunPredict(predict_features, weights)
+        pred = RunPredict(predict_features, weights, actFun=actFun)
         post_predictions.append(pred)
 
     post_predictions = np.array(post_predictions)
@@ -269,7 +274,7 @@ def predictBNN(predict_features, pickle_file, test_labels=[], pickle_file_prior=
         prior_weights = np_bnn.BNN_files.load_obj(pickle_file_prior)
         prior_predictions = []
         for weights in prior_weights:
-            pred = RunPredict(predict_features, weights)
+            pred = RunPredict(predict_features, weights, actFun=actFun)
             prior_predictions.append(pred)
     
         prior_predictions = np.array(prior_predictions)
