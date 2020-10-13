@@ -76,25 +76,32 @@ while True:
 # make predictions based on MCMC's estimated weights (test data)
 post_pr_test = BNN_lib.predictBNN(dat['test_data'],
                                   pickle_file=logger._w_file,
-                                  actFun=activation_function,
                                   test_labels=dat['test_labels'])
 
 # make predictions based on MCMC's estimated weights (train data)
 post_pr = BNN_lib.predictBNN(dat['data'],
                              pickle_file=logger._w_file,
-                             actFun=activation_function,
                              test_labels=dat['labels'])
 
 
 
 # ADDITIONAL OPTIONS
-
 # to restart a previous run you can provide the pickle file with the posterior parameters
 # when initializing the BNN environment
 pickle_file = logger._w_file
-bnn = BNN_env.npBNN(dat, n_nodes = n_nodes_list,
-                 use_bias_node = 1, prior_f = prior, p_scale = p_scale,
-                 pickle_file=pickle_file, seed=rseed)
+bnn = BNN_env.npBNN(dat,
+                    n_nodes = n_nodes_list,
+                    use_bias_node = 1,
+                    prior_f = prior,
+                    p_scale = p_scale,
+                    pickle_file=pickle_file,
+                    seed=rseed)
 
-mcmc = BNN_env.MCMC(bnn,update_f=[0.05, 0.04, 0.07], update_ws=[0.075, 0.075, 0.075],
-                 temperature = 1, n_iteration=50000, sampling_f=100, print_f=1000, n_post_samples=100)
+mcmc = BNN_env.MCMC(bnn,
+                    update_f=[0.05, 0.04, 0.07],
+                    update_ws=[0.075, 0.075, 0.075],
+                    temperature = 1,
+                    n_iteration=50000,
+                    sampling_f=100,
+                    print_f=1000,
+                    n_post_samples=100)

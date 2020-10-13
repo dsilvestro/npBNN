@@ -77,12 +77,18 @@ class npBNN():
             # last layer
             w_layers.append(np.random.normal(0, self._init_std, (self._size_output, self._n_nodes[-1])))
         else:
-            post_w = np_bnn.BNN_files.load_obj(pickle_file)
-            w_layers = post_w[-1]
+            post_samples = np_bnn.BNN_files.load_obj(pickle_file)
+            post_weights = [post_samples[i]['weights'] for i in range(len(post_samples))]
+            w_layers = post_weights[-1]
         self._w_layers = w_layers
 
         self._indicators = np.ones(self._w_layers[0].shape)
-        self._act_fun = actFun
+        if pickle_file == "":
+            self._act_fun = actFun
+        else:
+            post_alphas = [post_samples[i]['alphas'] for i in range(len(post_samples))]
+            self._act_fun = genReLU(prm=post_alphas[-1])
+
 
         # init prior function
         if self._prior == 0:
@@ -360,14 +366,18 @@ class postLogger():
                     tmp.append(bnn_obj._w_layers[i])
             else:
                 tmp = bnn_obj._w_layers
+            post_prm = {'weights': tmp}
+            # a ReLU prms
+            post_prm['alphas'] = list(bnn_obj._act_fun._acc_prm)
+
             if add_prms:
-                tmp.append(add_prms)
+                post_prm['additional_prm'] = list(bnn_obj._act_fun._acc_prm)
 
             # print(mcmc_obj._current_iteration, self._counter, len(self._list_post_weights))
             if len(self._list_post_weights) < mcmc_obj._n_post_samples:
-                self._list_post_weights.append(tmp)
+                self._list_post_weights.append(post_prm)
             else:
-                self._list_post_weights[self._counter] = tmp
+                self._list_post_weights[self._counter] = post_prm
             self.update_counter()
             if self._counter == mcmc_obj._n_post_samples:
                 self.reset_counter()

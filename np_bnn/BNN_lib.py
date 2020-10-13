@@ -260,20 +260,23 @@ def CalcFP_BF(y, y_p, lab, threshold=150):
     return np.sum(z[prediction != lab]) / len(prediction)
 
 
-def predictBNN(predict_features, pickle_file, actFun, test_labels=[], pickle_file_prior=0, threshold=0.95, bf=150):
+def predictBNN(predict_features, pickle_file, test_labels=[], pickle_file_prior=0, threshold=0.95, bf=150):
     import np_bnn.BNN_files
     import os
     n_features = predict_features.shape[1]
     # load posterior weights
-    post_weights = np_bnn.BNN_files.load_obj(pickle_file)
+    post_samples = np_bnn.BNN_files.load_obj(pickle_file)
+    post_weights = [post_samples[i]['weights'] for i in range(len(post_samples))]
+    post_alphas = [post_samples[i]['alphas'] for i in range(len(post_samples))]
 
     if n_features < post_weights[0][0].shape[1]:
         "add bias node"
         predict_features = np.c_[np.ones(predict_features.shape[0]), predict_features]
 
     post_predictions = []
-    for weights in post_weights:
-        pred = RunPredict(predict_features, weights, actFun=actFun)
+    for i in range(len(post_weights)):
+        actFun = np_bnn.BNN_lib.genReLU(prm=post_alphas[i])
+        pred = RunPredict(predict_features, post_weights[i], actFun=actFun)
         post_predictions.append(pred)
 
     post_predictions = np.array(post_predictions)
@@ -298,10 +301,14 @@ def predictBNN(predict_features, pickle_file, actFun, test_labels=[], pickle_fil
         print("Confusion matrix:\n", CalcConfusionMatrix(post_prob_predictions, test_labels))
 
     if pickle_file_prior:
-        prior_weights = np_bnn.BNN_files.load_obj(pickle_file_prior)
+        prior_samples = np_bnn.BNN_files.load_obj(pickle_file_prior)
+        prior_weights = [prior_samples[i]['weights'] for i in range(len(prior_samples))]
+        prior_alphas = [prior_samples[i]['alphas'] for i in range(len(prior_samples))]
+
         prior_predictions = []
-        for weights in prior_weights:
-            pred = RunPredict(predict_features, weights, actFun=actFun)
+        for i in range(lwn(prior_weights)):
+            actFun = np_bnn.BNN_lib.genReLU(prm=prior_alphas[i])
+            pred = RunPredict(predict_features, prior_weights[i], actFun=actFun)
             prior_predictions.append(pred)
     
         prior_predictions = np.array(prior_predictions)
