@@ -371,7 +371,7 @@ class postLogger():
             post_prm['alphas'] = list(bnn_obj._act_fun._acc_prm)
 
             if add_prms:
-                post_prm['additional_prm'] = list(bnn_obj._act_fun._acc_prm)
+                post_prm['additional_prm'] = list(add_prms)
 
             # print(mcmc_obj._current_iteration, self._counter, len(self._list_post_weights))
             if len(self._list_post_weights) < mcmc_obj._n_post_samples:
