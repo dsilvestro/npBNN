@@ -11,7 +11,7 @@ from numpy.random import RandomState, SeedSequence
 
 class npBNN():
     def __init__(self, dat, n_nodes=[50, 5],
-                 use_bias_node=1, init_std=0.1, p_scale=1,
+                 use_bias_node=1, init_std=0.1, p_scale=1, prior_ind1=0.5,
                  prior_f=1, hyper_p=0, freq_indicator=0, w_bound=np.infty,
                  pickle_file="", seed=1234, use_class_weights=0, actFun=genReLU()):
         # prior_f: 0) uniform 1) normal 2) cauchy
@@ -49,7 +49,7 @@ class npBNN():
         self._sample_id = np.arange(self._n_samples)
         self._prior = prior_f
         self._p_scale = p_scale
-        self._prior_ind1 = 0.5
+        self._prior_ind1 = prior_ind1
 
         # reset labels
         self._labels_reset = np.zeros(len(self._labels)).astype(int)
@@ -120,18 +120,20 @@ class npBNN():
         for w in self._w_layers: print(w.shape)
 
     # init prior functions
-    def calc_prior(self, w=0):
+    def calc_prior(self, w=0, ind=[]):
         if w == 0:
             w = self._w_layers
+        if len(ind) == 0:
+            ind = self._indicators
         if self._prior == 0:
             logPrior = 0
         else:
             logPrior = 0
             for i in range(self._n_layers):
                 logPrior += np.sum(self._prior_f(w[i], 0, scale=self._prior_scale[i]))
-        if self._prior_ind1 != 0.5:
-            logPrior += np.sum(self._indicators) * np.log(self._prior_ind1) + \
-                        (self._indicators.size - np.sum(self._indicators)) * np.log(1 - self._prior_ind1)
+        if self._freq_indicator:
+            logPrior += np.sum(ind) * np.log(self._prior_ind1) + \
+                        (self._indicators.size - np.sum(ind)) * np.log(1 - self._prior_ind1)
         return logPrior
 
     def sample_prior_scale(self):
@@ -255,7 +257,7 @@ class MCMC():
             tmp = RunHiddenLayer(tmp, w_layers_prime_temp,bnn_obj._act_fun, i)
         y_prime = SoftMax(tmp)
 
-        logPrior_prime = bnn_obj.calc_prior(w=w_layers_prime) + additional_prob
+        logPrior_prime = bnn_obj.calc_prior(w=w_layers_prime, ind=indicators_prime) + additional_prob
         if self._sample_from_prior:
             logLik_prime = 0
         else:
@@ -384,7 +386,9 @@ class postLogger():
             SaveObject(self._list_post_weights, self._w_file)
         else:
             row = [mcmc_obj._current_iteration]
-            for i in range(bnn_obj._n_layers):
+            tmp = bnn_obj._w_layers[0] * bnn_obj._indicators[0]
+            row = row + [j for j in list(tmp.flatten())]
+            for i in range(1, bnn_obj._n_layers):
                 row = row + [j for j in list(bnn_obj._w_layers[i].flatten())]
             self._wweight.writerow(row)
             self._w_file.flush()
