@@ -181,7 +181,7 @@ def RunPredict(data, weights, actFun):
     tmp = data+0
     for i in range(len(weights)-1):
         tmp = RunHiddenLayer(tmp,weights[i],actFun, i)
-    tmp = RunHiddenLayer(tmp, weights[i + 1], False, i + 1)
+    tmp = RunHiddenLayer(tmp, weights[i+1], False, i+1)
     # output
     y_predict = SoftMax(tmp)
     return y_predict
@@ -194,8 +194,7 @@ def RunPredictInd(data, weights, ind, actFun):
             tmp = RunHiddenLayer(tmp,weights[i]*ind,actFun, i)
         elif i < len(weights)-1:
             tmp = RunHiddenLayer(tmp,weights[i],actFun, i)
-        else:
-            tmp = RunHiddenLayer(tmp, weights[i], False, i)
+    tmp = RunHiddenLayer(tmp, weights[i+1], False, i+1)
     # output
     y_predict = SoftMax(tmp)
     return y_predict

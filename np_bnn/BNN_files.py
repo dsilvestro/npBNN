@@ -74,7 +74,7 @@ def init_output_files(bnn_obj, filename="BNN", sample_from_prior=0, outpath="",a
         head = head + add_prms
 
     if bnn_obj._act_fun._trainable:
-        head = head + ["alpha_%s" % (i) for i in range(bnn_obj._n_layers)]
+        head = head + ["alpha_%s" % (i) for i in range(bnn_obj._n_layers-1)]
     
     head.append("acc_prob")
     head.append("mcmc_id")
