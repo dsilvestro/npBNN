@@ -254,7 +254,10 @@ class MCMC():
                 w_layers_prime_temp = w_layers_prime[i] * indicators_prime
             else:
                 w_layers_prime_temp = w_layers_prime[i]
-            tmp = RunHiddenLayer(tmp, w_layers_prime_temp,bnn_obj._act_fun, i)
+            if i < bnn_obj._n_layers-1:
+                tmp = RunHiddenLayer(tmp, w_layers_prime_temp,bnn_obj._act_fun, i)
+            else:
+                tmp = RunHiddenLayer(tmp, w_layers_prime_temp, False, i)
         y_prime = SoftMax(tmp)
 
         logPrior_prime = bnn_obj.calc_prior(w=w_layers_prime, ind=indicators_prime) + additional_prob

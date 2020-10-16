@@ -19,7 +19,7 @@ dat = BNN_files.get_data(f,l,seed=rseed,testsize=0.1, all_class_in_testset=1) # 
 
 # set up model architecture and priors
 n_nodes_list = [5, 5] # 2 hidden layers with 5 nodes each
-alphas = np.zeros(len(n_nodes_list)+1)
+alphas = np.zeros(len(n_nodes_list))
 activation_function = BNN_lib.genReLU(prm=alphas, trainable=True) # To use default ReLU: BNN_lib.genReLU()
 prior = 1 # 0) uniform, 1) normal, 2) Cauchy, 3) Laplace
 p_scale = 1 # std for Normal, scale parameter for Cauchy and Laplace, boundaries for Uniform

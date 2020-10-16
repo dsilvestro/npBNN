@@ -22,6 +22,7 @@ class genReLU():
             self._simpleReLU = True
         else:
             self._simpleReLU = False
+
     def eval(self, z, layer_n):
         if self._simpleReLU:
             z[z < 0] = 0
@@ -30,7 +31,7 @@ class genReLU():
         return z
     def reset_prm(self, prm):
         self._prm = prm
-    
+
     def reset_accepted_prm(self):
         self._acc_prm = self._prm + 0
 
@@ -60,8 +61,10 @@ def SoftMax(z):
 
 def RunHiddenLayer(z0, w01, actFun, layer_n):
     z1 = MatrixMultiplication(z0, w01)
-    z2 = actFun.eval(z1, layer_n)
-    return z2
+    if actFun:
+        return actFun.eval(z1, layer_n)
+    else:
+        return z1
 
 def UpdateFixedNormal(i, d=1, n=1, Mb=100, mb= -100, rs=0):
     if not rs:
@@ -176,8 +179,9 @@ def SaveObject(obj, filename):
 def RunPredict(data, weights, actFun):
     # weights: list of 2D arrays
     tmp = data+0
-    for i in range(len(weights)):
+    for i in range(len(weights)-1):
         tmp = RunHiddenLayer(tmp,weights[i],actFun, i)
+    tmp = RunHiddenLayer(tmp, weights[i + 1], False, i + 1)
     # output
     y_predict = SoftMax(tmp)
     return y_predict
@@ -185,11 +189,13 @@ def RunPredict(data, weights, actFun):
 def RunPredictInd(data, weights, ind, actFun):
     # weights: list of 2D arrays
     tmp = data+0
-    for i in range(len(weights)):
+    for i in range(len(weights)-1):
         if i ==0:
             tmp = RunHiddenLayer(tmp,weights[i]*ind,actFun, i)
-        else:
+        elif i < len(weights)-1:
             tmp = RunHiddenLayer(tmp,weights[i],actFun, i)
+        else:
+            tmp = RunHiddenLayer(tmp, weights[i], False, i)
     # output
     y_predict = SoftMax(tmp)
     return y_predict
