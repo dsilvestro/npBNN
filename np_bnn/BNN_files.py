@@ -8,11 +8,23 @@ import csv
 from np_bnn import BNN_env
 
 # get data
-def get_data(f,l,testsize=0.1, batch_training=0,seed=1234, all_class_in_testset=1):
+def get_data(f,l,testsize=0.1, batch_training=0,seed=1234, all_class_in_testset=1,
+             instance_id=0, header=0):
     np.random.seed(seed)
-    try: tot_x = np.load(f)
-    except(ValueError): tot_x = np.loadtxt(f)
-    tot_labels = np.loadtxt(l,dtype=str)
+    inst_id = None
+    try:
+        tot_x = np.load(f)
+    except(ValueError):
+        if not instance_id:
+            tot_x = np.loadtxt(f)
+        else:
+            tmp = np.genfromtxt(f, skip_header=header, dtype=str)
+            tot_x = tmp[:,1:].astype(float)
+            inst_id = tmp[:,0].astype(str)
+            
+    tot_labels = np.loadtxt(l,skiprows=header,dtype=str)
+    if instance_id:
+        tot_labels = tot_labels[:,1]
     tot_labels_numeric = turn_labels_to_numeric(tot_labels, l)
     x, labels, x_test, labels_test = randomize_data(tot_x, tot_labels_numeric,testsize=testsize,
                                                     all_class_in_testset=all_class_in_testset)
@@ -23,7 +35,7 @@ def get_data(f,l,testsize=0.1, batch_training=0,seed=1234, all_class_in_testset=
         labels = labels[indx]
 
     return {'data': x, 'labels': labels, 'label_dict': np.unique(tot_labels),
-            'test_data': x_test, 'test_labels': labels_test}
+            'test_data': x_test, 'test_labels': labels_test, 'inst_id': inst_id}
 
 
 def save_data(dat, lab, outname="data", test_dat=[], test_lab=[]):
