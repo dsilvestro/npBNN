@@ -1,5 +1,4 @@
 import numpy as np
-import argparse
 from concurrent.futures import ProcessPoolExecutor
 np.set_printoptions(suppress=1)  # prints floats, no scientific notation
 np.set_printoptions(precision=3)  # rounds all array elements to 3rd digit
