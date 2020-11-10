@@ -265,7 +265,8 @@ def CalcFP_BF(y, y_p, lab, threshold=150):
     return np.sum(z[prediction != lab]) / len(prediction)
 
 
-def predictBNN(predict_features, pickle_file, test_labels=[], pickle_file_prior=0, threshold=0.95, bf=150):
+def predictBNN(predict_features, pickle_file, test_labels=[], instance_id=[],
+               pickle_file_prior=0, threshold=0.95, bf=150, fname=""):
     import np_bnn.BNN_files
     import os
     n_features = predict_features.shape[1]
@@ -290,9 +291,10 @@ def predictBNN(predict_features, pickle_file, test_labels=[], pickle_file_prior=
     predictions_outdir = os.path.dirname(pickle_file)
     out_name = os.path.splitext(pickle_file)[0]
     out_name = os.path.basename(out_name)
-
-    out_file_post_pr = os.path.join(predictions_outdir, out_name + '_pred_pr.npy')
-    out_file_mean_pr = os.path.join(predictions_outdir, out_name + '_pred_mean_pr.txt')
+    if fname != "":
+        fname = fname + "_"
+    out_file_post_pr = os.path.join(predictions_outdir, fname + out_name + '_pred_pr.npy')
+    out_file_mean_pr = os.path.join(predictions_outdir, fname + out_name + '_pred_mean_pr.txt')
 
     if len(test_labels) > 0:
 
@@ -325,8 +327,15 @@ def predictBNN(predict_features, pickle_file, test_labels=[], pickle_file_prior=
         print("True positive rate (BF):", np.mean(TPrate))
         print("False positive rate (BF):", np.mean(FPrate))
 
+    if len(instance_id):
+        post_prob_predictions_id = np.hstack((instance_id.reshape(len(instance_id), 1),
+                                              np.round(post_prob_predictions,4).astype(str)))
+        np.savetxt(out_file_mean_pr, post_prob_predictions_id, fmt='%s',delimiter='\t')
+    else:
+        np.savetxt(out_file_mean_pr, post_prob_predictions, fmt='%.3f')
     # print the arrays to file
     np.save(out_file_post_pr, post_predictions)
-    np.savetxt(out_file_mean_pr, post_prob_predictions, fmt='%.3f')
-    print("Predictions saved in files:", out_file_post_pr, out_file_mean_pr,"\n")
+    print("Predictions saved in files:")
+    print('   ', out_file_post_pr)
+    print('   ', out_file_mean_pr,"\n")
     return post_prob_predictions

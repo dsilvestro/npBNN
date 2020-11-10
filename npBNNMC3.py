@@ -12,7 +12,12 @@ np.random.seed(rseed)
 # load data (2 files: features and labels)
 f= "./example_files/data_features.txt"
 l= "./example_files/data_labels.txt"
-dat = BNN_files.get_data(f,l,seed=rseed,testsize=0.1, all_class_in_testset=1)
+dat = BNN_files.get_data(f,l,
+                         seed=rseed,
+                         testsize=0.1,
+                         all_class_in_testset=1,
+                         header=1, # input data has a header
+                         instance_id=1) # input data includes names of instances
 
 # set up model architecture and priors
 n_nodes_list = [5, 5] # 2 hidden layers with 5 nodes each
@@ -87,11 +92,33 @@ for mc3_it in range(500):
         if mc3_it % 10 == 0:
             print(mc3_it, singleChainArgs[0][1]._logPost, singleChainArgs[0][0]._w_layers[0][0][0:5])
 
+# make predictions based on MCMC's estimated weights
+# test data
+post_pr_test = BNN_lib.predictBNN(dat['test_data'],
+                                  pickle_file=logger._w_file,
+                                  test_labels=dat['test_labels'],
+                                  instance_id=dat['id_test_data'])
 
-# make predictions based on MCMC's estimated weights (test data)
-post_pr_test = BNN_lib.predictBNN(dat['test_data'], pickle_file=logger._w_file, test_labels=dat['test_labels'])
+# train+test data
+dat = BNN_files.get_data(f, l,
+                         testsize=0,  # 10% test set
+                         header=1,  # input data has a header
+                         instance_id=1)  # input data includes names of instances
 
-# make predictions based on MCMC's estimated weights (train data)
-post_pr = BNN_lib.predictBNN(dat['data'], pickle_file=logger._w_file, test_labels=dat['labels'])
+post_pr_all = BNN_lib.predictBNN(dat['data'],
+                                 pickle_file=logger._w_file,
+                                 test_labels=dat['labels'],
+                                 instance_id=dat['id_data'])
+
+# predict new unlabeled data
+dat = BNN_files.get_data(f="./example_files/unlabeled_data.txt",
+                         testsize=0,  # 10% test set
+                         header=1,  # input data has a header
+                         instance_id=1)  # input data includes names of instances
+
+post_pr_new = BNN_lib.predictBNN(dat['data'],
+                                 pickle_file=logger._w_file,
+                                 instance_id=dat['id_data'])
+
 
 

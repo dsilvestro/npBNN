@@ -8,10 +8,11 @@ import csv
 from np_bnn import BNN_env
 
 # get data
-def get_data(f,l,testsize=0.1, batch_training=0,seed=1234, all_class_in_testset=1,
+def get_data(f,l=None,testsize=0.1, batch_training=0,seed=1234, all_class_in_testset=1,
              instance_id=0, header=0):
     np.random.seed(seed)
-    inst_id = None
+    inst_id = []
+    fname = os.path.splitext(os.path.basename(f))[0]
     try:
         tot_x = np.load(f)
     except(ValueError):
@@ -21,13 +22,20 @@ def get_data(f,l,testsize=0.1, batch_training=0,seed=1234, all_class_in_testset=
             tmp = np.genfromtxt(f, skip_header=header, dtype=str)
             tot_x = tmp[:,1:].astype(float)
             inst_id = tmp[:,0].astype(str)
-            
+    if not l:
+        return {'data': tot_x, 'labels': [], 'label_dict': [],
+                'test_data': [], 'test_labels': [],
+                'id_data': inst_id, 'id_test_data': [],
+                'file_name': fname}
+
     tot_labels = np.loadtxt(l,skiprows=header,dtype=str)
     if instance_id:
         tot_labels = tot_labels[:,1]
     tot_labels_numeric = turn_labels_to_numeric(tot_labels, l)
-    x, labels, x_test, labels_test = randomize_data(tot_x, tot_labels_numeric,testsize=testsize,
-                                                    all_class_in_testset=all_class_in_testset)
+    x, labels, x_test, labels_test, inst_id_x, inst_id_x_test = randomize_data(tot_x, tot_labels_numeric,
+                                                                               testsize=testsize,
+                                                                               all_class_in_testset=all_class_in_testset,
+                                                                               inst_id=inst_id)
 
     if batch_training:
         indx = np.random.randint(0,len(labels),batch_training)
@@ -35,7 +43,9 @@ def get_data(f,l,testsize=0.1, batch_training=0,seed=1234, all_class_in_testset=
         labels = labels[indx]
 
     return {'data': x, 'labels': labels, 'label_dict': np.unique(tot_labels),
-            'test_data': x_test, 'test_labels': labels_test, 'inst_id': inst_id}
+            'test_data': x_test, 'test_labels': labels_test,
+            'id_data': inst_id_x, 'id_test_data': inst_id_x_test,
+            'file_name': fname}
 
 
 def save_data(dat, lab, outname="data", test_dat=[], test_lab=[]):
@@ -106,11 +116,19 @@ def init_output_files(bnn_obj, filename="BNN", sample_from_prior=0, outpath="",a
     return wlog, logfile, w_file_name, wweights
 
 
-def randomize_data(tot_x, tot_labels, testsize=0.1, all_class_in_testset=1):
-    rnd_order = np.random.choice(range(len(tot_labels)), len(tot_labels), replace=False)
+def randomize_data(tot_x, tot_labels, testsize=0.1, all_class_in_testset=1, inst_id=[]):
+    if testsize:
+        rnd_order = np.random.choice(range(len(tot_labels)), len(tot_labels), replace=False)
+    else:
+        rnd_order = np.arange(len(tot_labels))
     tot_x = tot_x[rnd_order]
     tot_labels = tot_labels[rnd_order]
     test_set_ind = int(testsize * len(tot_labels))
+    inst_id_x = []
+    inst_id_test = []
+    tot_inst_id = []
+    if len(inst_id):
+        tot_inst_id = inst_id[rnd_order]
 
     if all_class_in_testset:
         test_set_ind = []
@@ -126,17 +144,27 @@ def randomize_data(tot_x, tot_labels, testsize=0.1, all_class_in_testset=1):
 
         x = tot_x[train_ind]
         labels = tot_labels[train_ind]
+        if len(inst_id):
+            inst_id_x = tot_inst_id[train_ind]
+            inst_id_test = tot_inst_id[test_set_ind]
     elif test_set_ind == 0:
         x_test = []
         labels_test = []
         x = tot_x
         labels = tot_labels
+        if len(inst_id):
+            inst_id_x = tot_inst_id
+            inst_id_test = []
     else:
         x_test = tot_x[0:test_set_ind, :]
         labels_test = tot_labels[0:test_set_ind]
         x = tot_x[test_set_ind:, :]
         labels = tot_labels[test_set_ind:]
-    return x, labels, x_test, labels_test
+        if len(inst_id):
+            inst_id_test = tot_inst_id[0:test_set_ind]
+            inst_id_x = tot_inst_id[test_set_ind:]
+         
+    return x, labels, x_test, labels_test, inst_id_x, inst_id_test
 
 
 def load_obj(file_name):

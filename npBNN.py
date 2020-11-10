@@ -14,7 +14,12 @@ l= "./example_files/data_labels.txt"
 # with testsize=0.1, 10% of the data are randomly selected as test set
 # if all_class_in_testset = 1: 10% of the samples and a minimum of 1 sample
 # for each class are represented in the test set
-dat = BNN_files.get_data(f,l,seed=rseed,testsize=0.1, all_class_in_testset=1) # 10% test set
+dat = BNN_files.get_data(f,l,
+                         seed=rseed,
+                         testsize=0.1, # 10% test set
+                         all_class_in_testset=1,
+                         header=1, # input data has a header
+                         instance_id=1) # input data includes names of instances
 
 
 # set up model architecture and priors
@@ -50,7 +55,7 @@ mcmc = BNN_env.MCMC(bnn,
                     print_f=1000,
                     n_post_samples=100,
                     sample_from_prior=sample_from_prior,
-                    likelihood_tempering=1)
+                    likelihood_tempering=1.2)
 
 
 
@@ -59,7 +64,7 @@ logger = BNN_env.postLogger(bnn, filename="BNN", log_all_weights=0)
 
 
 # run MCMC
-while True:
+while False:
     mcmc.mh_step(bnn)
     # print some stats (iteration number, likelihood, training accuracy, test accuracy
     if mcmc._current_iteration % mcmc._print_f == 0 or mcmc._current_iteration == 1:
@@ -73,15 +78,36 @@ while True:
         break
 
 
-# make predictions based on MCMC's estimated weights (test data)
+# make predictions based on MCMC's estimated weights
+# test data
 post_pr_test = BNN_lib.predictBNN(dat['test_data'],
                                   pickle_file=logger._w_file,
-                                  test_labels=dat['test_labels'])
+                                  test_labels=dat['test_labels'],
+                                  instance_id=dat['id_test_data'],
+                                  fname=dat['file_name'])
 
-# make predictions based on MCMC's estimated weights (train data)
-post_pr = BNN_lib.predictBNN(dat['data'],
-                             pickle_file=logger._w_file,
-                             test_labels=dat['labels'])
+# train+test data
+dat_all = BNN_files.get_data(f,l,
+                             testsize=0, # 10% test set
+                             header=1, # input data has a header
+                             instance_id=1) # input data includes names of instances
+
+post_pr_all = BNN_lib.predictBNN(dat_all['data'],
+                                 pickle_file=logger._w_file,
+                                 test_labels=dat_all['labels'],
+                                 instance_id=dat_all['id_data'],
+                                 fname="all_data")
+                             
+# predict new unlabeled data
+new_dat = BNN_files.get_data(f="./example_files/unlabeled_data.txt",
+                             testsize=0, # 10% test set
+                             header=1, # input data has a header
+                             instance_id=1) # input data includes names of instances
+
+post_pr_new = BNN_lib.predictBNN(new_dat['data'],
+                                 pickle_file=logger._w_file,
+                                 instance_id=new_dat['id_data'],
+                                 fname=new_dat['file_name'])
 
 
 
