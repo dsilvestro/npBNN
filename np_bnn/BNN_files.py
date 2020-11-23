@@ -130,7 +130,7 @@ def randomize_data(tot_x, tot_labels, testsize=0.1, all_class_in_testset=1, inst
     if len(inst_id):
         tot_inst_id = inst_id[rnd_order]
 
-    if all_class_in_testset:
+    if all_class_in_testset and testsize:
         test_set_ind = []
 
         for i in np.unique(tot_labels):

@@ -301,11 +301,13 @@ def predictBNN(predict_features, pickle_file, test_labels=[], instance_id=[],
         accuracy = CalcAccuracy(post_prob_predictions, test_labels)
         TPrate = CalcTP(post_prob_predictions, test_labels, threshold=threshold)
         FPrate = CalcFP(post_prob_predictions, test_labels, threshold=threshold)
-
-        print("Accuracy:", np.mean(accuracy))
+        mean_accuracy = np.mean(accuracy)
+        print("Accuracy:", mean_accuracy)
         print("True positive rate:", np.mean(TPrate))
         print("False positive rate:", np.mean(FPrate))
         print("Confusion matrix:\n", CalcConfusionMatrix(post_prob_predictions, test_labels))
+    else:
+        mean_accuracy = np.nan
 
     if pickle_file_prior:
         prior_samples = np_bnn.BNN_files.load_obj(pickle_file_prior)
@@ -338,4 +340,4 @@ def predictBNN(predict_features, pickle_file, test_labels=[], instance_id=[],
     print("Predictions saved in files:")
     print('   ', out_file_post_pr)
     print('   ', out_file_mean_pr,"\n")
-    return post_prob_predictions
+    return {'post_prob_predictions': post_prob_predictions, 'mean_accuracy': mean_accuracy}
