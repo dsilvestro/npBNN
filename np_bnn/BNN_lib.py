@@ -269,7 +269,12 @@ def predictBNN(predict_features, pickle_file, test_labels=[], instance_id=[],
                pickle_file_prior=0, threshold=0.95, bf=150, fname=""):
     import np_bnn.BNN_files
     import os
-    n_features = predict_features.shape[1]
+    if len(predict_features) ==0:
+        print("Data not found.")
+        return 0
+    else:
+        n_features = predict_features.shape[1]
+    
     # load posterior weights
     post_samples = np_bnn.BNN_files.load_obj(pickle_file)
     post_weights = [post_samples[i]['weights'] for i in range(len(post_samples))]
@@ -297,7 +302,6 @@ def predictBNN(predict_features, pickle_file, test_labels=[], instance_id=[],
     out_file_mean_pr = os.path.join(predictions_outdir, fname + out_name + '_pred_mean_pr.txt')
 
     if len(test_labels) > 0:
-
         accuracy = CalcAccuracy(post_prob_predictions, test_labels)
         TPrate = CalcTP(post_prob_predictions, test_labels, threshold=threshold)
         FPrate = CalcFP(post_prob_predictions, test_labels, threshold=threshold)
@@ -306,6 +310,10 @@ def predictBNN(predict_features, pickle_file, test_labels=[], instance_id=[],
         print("True positive rate:", np.mean(TPrate))
         print("False positive rate:", np.mean(FPrate))
         print("Confusion matrix:\n", CalcConfusionMatrix(post_prob_predictions, test_labels))
+        out_file_acc = os.path.join(predictions_outdir, fname + out_name + '_accuracy.txt')
+        with open(out_file_acc,'w') as outf:
+            outf.writelines("Mean accuracy: %s (TP: %s; FP: %s)" % (mean_accuracy, TPrate, FPrate))
+        
     else:
         mean_accuracy = np.nan
 

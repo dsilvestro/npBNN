@@ -64,7 +64,7 @@ logger = BNN_env.postLogger(bnn, filename="BNN", log_all_weights=0)
 
 
 # run MCMC
-while False:
+while True:
     mcmc.mh_step(bnn)
     # print some stats (iteration number, likelihood, training accuracy, test accuracy
     if mcmc._current_iteration % mcmc._print_f == 0 or mcmc._current_iteration == 1:
