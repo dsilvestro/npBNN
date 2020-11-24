@@ -88,12 +88,11 @@ post_pr_test = BNN_lib.predictBNN(dat['test_data'],
 
 
 # determine feature importance with test data
-feature_names = ['feature_'+str(i) for i in np.arange(dat['test_data'].shape[1])]
 feature_importance = BNN_lib.feature_importance(dat['test_data'],
                                   weights_pkl=logger._w_file,
                                   true_labels=dat['test_labels'],
                                   fname_stem=dat['file_name'],
-                                  feature_names=feature_names)
+                                  feature_names=dat['feature_names'])
 
 # train+test data
 dat_all = BNN_files.get_data(f,l,

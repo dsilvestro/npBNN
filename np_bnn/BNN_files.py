@@ -22,11 +22,17 @@ def get_data(f,l=None,testsize=0.1, batch_training=0,seed=1234, all_class_in_tes
             tmp = np.genfromtxt(f, skip_header=header, dtype=str)
             tot_x = tmp[:,1:].astype(float)
             inst_id = tmp[:,0].astype(str)
+        
+    if header:
+        feature_names = next(open(f)).split()[1:]
+    else:
+        feature_names = ["feature_%s" % i for i in range(tot_x.shape[1])]
+    
     if not l:
         return {'data': tot_x, 'labels': [], 'label_dict': [],
                 'test_data': [], 'test_labels': [],
                 'id_data': inst_id, 'id_test_data': [],
-                'file_name': fname}
+                'file_name': fname, 'feature_names': feature_names}
 
     tot_labels = np.loadtxt(l,skiprows=header,dtype=str)
     if instance_id:
@@ -45,7 +51,7 @@ def get_data(f,l=None,testsize=0.1, batch_training=0,seed=1234, all_class_in_tes
     return {'data': x, 'labels': labels, 'label_dict': np.unique(tot_labels),
             'test_data': x_test, 'test_labels': labels_test,
             'id_data': inst_id_x, 'id_test_data': inst_id_x_test,
-            'file_name': fname}
+            'file_name': fname, 'feature_names': feature_names}
 
 
 def save_data(dat, lab, outname="data", test_dat=[], test_lab=[]):

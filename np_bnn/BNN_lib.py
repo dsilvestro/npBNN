@@ -47,7 +47,7 @@ def calc_likelihood(prediction, labels, sample_id, class_weight=[], lik_temp=1):
 
 
 def MatrixMultiplication(x1,x2):
-    z1 = np.einsum('nj,ij->ni', x1, x2, optimize=True)
+    z1 = np.einsum('nj,ij->ni', x1, x2, optimize=False)
     # same as:
     # for i in range(n_samples):
     # 	print(np.einsum('j,ij->i', x[i], w_in_l1))
@@ -375,7 +375,7 @@ def get_accuracy(features,weights_pkl,true_labels,feature_index_to_shuffle=None)
         accuracies.append(accuracy)
     return np.mean(accuracies)
 
-def feature_importance(input_features,weights_pkl,true_labels,fname_stem='',feature_names=[]):
+def feature_importance(input_features,weights_pkl,true_labels,fname_stem='',feature_names=[],verbose=False):
     import os
     features = input_features.copy()
     # if no names are provided, name them by index
@@ -386,7 +386,8 @@ def feature_importance(input_features,weights_pkl,true_labels,fname_stem='',feat
     # go through features and shuffle one at a time
     accuracies_wo_feature = []
     for feature_index,feature_name in enumerate(feature_names):
-        print('Testing importance of feature',feature_index+1)
+        if verbose:
+            print('Testing importance of feature',feature_index+1)
         accuracy = get_accuracy(features,weights_pkl,true_labels,feature_index_to_shuffle=feature_index)
         accuracies_wo_feature.append(accuracy)
     delta_accs = np.round(ref_accuracy-np.array(accuracies_wo_feature),5)
