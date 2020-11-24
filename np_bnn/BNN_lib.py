@@ -349,3 +349,65 @@ def predictBNN(predict_features, pickle_file, test_labels=[], instance_id=[],
     print('   ', out_file_post_pr)
     print('   ', out_file_mean_pr,"\n")
     return {'post_prob_predictions': post_prob_predictions, 'mean_accuracy': mean_accuracy}
+
+
+def get_accuracy(features,weights_pkl,true_labels,feature_index_to_shuffle=None):
+    import np_bnn.BNN_files
+    pred_features = features.copy()
+    # shuffle features if index is provided
+    if feature_index_to_shuffle:
+        # shuffle the feature values for the given feature between all instances
+        pred_features[:,feature_index_to_shuffle] = np.random.permutation(pred_features[:,feature_index_to_shuffle])
+    # load posterior weights
+    post_samples = np_bnn.BNN_files.load_obj(weights_pkl)
+    post_weights = [post_samples[i]['weights'] for i in range(len(post_samples))]
+    post_alphas = [post_samples[i]['alphas'] for i in range(len(post_samples))]
+    n_features = pred_features.shape[1]
+    if n_features < post_weights[0][0].shape[1]:
+        # add bias node
+        pred_features = np.c_[np.ones(pred_features.shape[0]), pred_features]
+    accuracies = []
+    for i in range(len(post_weights)):
+        actFun = genReLU(prm=post_alphas[i])
+        pred = RunPredict(pred_features, post_weights[i], actFun=actFun)
+        predicted_labels = np.argmax(pred, axis=1)
+        accuracy = len(predicted_labels[predicted_labels==true_labels])/len(predicted_labels)
+        accuracies.append(accuracy)
+    return np.mean(accuracies)
+
+def feature_importance(input_features,weights_pkl,true_labels,fname_stem='',feature_names=[]):
+    import os
+    features = input_features.copy()
+    # if no names are provided, name them by index
+    if len(feature_names) == 0:
+        feature_names = np.arange(features.shape[1]).astype(str)
+    # get accuracy with all features
+    ref_accuracy = get_accuracy(features,weights_pkl,true_labels,feature_index_to_shuffle=None)
+    # go through features and shuffle one at a time
+    accuracies_wo_feature = []
+    for feature_index,feature_name in enumerate(feature_names):
+        print('Testing importance of feature',feature_index+1)
+        accuracy = get_accuracy(features,weights_pkl,true_labels,feature_index_to_shuffle=feature_index)
+        accuracies_wo_feature.append(accuracy)
+    delta_accs = np.round(ref_accuracy-np.array(accuracies_wo_feature),5)
+    accuracies_wo_feature = np.round(accuracies_wo_feature,5)
+    feature_importance_df = pd.DataFrame(np.array([np.arange(0,len(feature_names)),feature_names,delta_accs,accuracies_wo_feature]).T,columns=['feature_index','feature_name','delta_acc','acc_with_feature_randomized'])
+    feature_importance_df.iloc[:,2:] = feature_importance_df.iloc[:,2:].astype('float')
+    feature_importance_df_sorted = feature_importance_df.sort_values('delta_acc',ascending=False)
+    # define outfile name
+    predictions_outdir = os.path.dirname(weights_pkl)
+    out_name = os.path.splitext(weights_pkl)[0]
+    out_name = os.path.basename(out_name)
+    if fname_stem != "":
+        fname_stem = fname_stem + "_"
+    feature_importance_df_filename = os.path.join(predictions_outdir, fname_stem + out_name + '_feature_importance.txt')
+    # format the last two columns as numeric for applyign float printing formatting options
+    feature_importance_df_sorted['delta_acc'] = pd.to_numeric(feature_importance_df_sorted['delta_acc'])
+    feature_importance_df_sorted['acc_with_feature_randomized'] = pd.to_numeric(feature_importance_df_sorted['acc_with_feature_randomized'])
+    feature_importance_df_sorted.to_csv(feature_importance_df_filename,sep='\t',index=False,header=True,float_format='%.6f')
+    return feature_importance_df_sorted
+
+
+
+
+
