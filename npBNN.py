@@ -84,8 +84,8 @@ post_pr_test = BNN_lib.predictBNN(dat['test_data'],
                                   pickle_file=logger._w_file,
                                   test_labels=dat['test_labels'],
                                   instance_id=dat['id_test_data'],
-                                  fname=dat['file_name'])
-
+                                  fname=dat['file_name'],
+                                  post_summary_mode=0)
 
 # determine feature importance with test data
 feature_importance = BNN_lib.feature_importance(dat['test_data'],

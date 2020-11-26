@@ -135,8 +135,6 @@ def CalcConfusionMatrix(y,lab):
     df_confusion = pd.crosstab(y_actu, y_pred, margins=True, rownames=['True'], colnames=['Predicted'])
     return df_confusion
 
-
-
 def CalcLabelFreq(y):
     prediction = np.argmax(y, axis=1)
     f = np.zeros(y.shape[1])
@@ -267,32 +265,53 @@ def CalcFP_BF(y, y_p, lab, threshold=150):
     return np.sum(z[prediction != lab]) / len(prediction)
 
 
-def predictBNN(predict_features, pickle_file, test_labels=[], instance_id=[],
-               pickle_file_prior=0, threshold=0.95, bf=150, fname=""):
-    if len(predict_features) ==0:
+def get_posterior_cat_prob(pred_features,pickle_file,feature_index_to_shuffle=None,post_summary_mode=0): # mode 0 is argmax, mode 1 is mean softmax
+    if len(pred_features) ==0:
         print("Data not found.")
         return 0
     else:
-        n_features = predict_features.shape[1]
-    
+        n_features = pred_features.shape[1]
+    predict_features = pred_features.copy()
+    # shuffle features if index is provided
+    if feature_index_to_shuffle:
+        # shuffle the feature values for the given feature between all instances
+        predict_features[:,feature_index_to_shuffle] = np.random.permutation(predict_features[:,feature_index_to_shuffle])
     # load posterior weights
     post_samples = np_bnn.BNN_files.load_obj(pickle_file)
     post_weights = [post_samples[i]['weights'] for i in range(len(post_samples))]
     post_alphas = [post_samples[i]['alphas'] for i in range(len(post_samples))]
-
     if n_features < post_weights[0][0].shape[1]:
         "add bias node"
         predict_features = np.c_[np.ones(predict_features.shape[0]), predict_features]
-
-    post_predictions = []
+    post_cat_probs = []
     for i in range(len(post_weights)):
         actFun = np_bnn.BNN_lib.genReLU(prm=post_alphas[i])
         pred = RunPredict(predict_features, post_weights[i], actFun=actFun)
-        post_predictions.append(pred)
+        post_cat_probs.append(pred)
+    post_softmax_probs = np.array(post_cat_probs)
+    if post_summary_mode == 0: # use argmax for each posterior sample
+        class_call_posterior = np.argmax(post_softmax_probs,axis=2).T
+        n_posterior_samples,n_instances,n_classes = post_softmax_probs.shape
+        posterior_prob_classes = np.zeros([n_instances,n_classes])
+        classes_and_counts = [[np.unique(i,return_counts=True)[0],np.unique(i,return_counts=True)[1]] for i in class_call_posterior]
+        for i,class_count in enumerate(classes_and_counts):
+            print
+            for j,class_index in enumerate(class_count[0]):
+                posterior_prob_classes[i,class_index] = class_count[1][j]
+        posterior_prob_classes = posterior_prob_classes/n_posterior_samples
+    elif post_summary_mode == 1: # use mean of softmax across posterior samples
+        posterior_prob_classes = np.mean(post_softmax_probs, axis=0)
+    return(post_softmax_probs,posterior_prob_classes)
 
-    post_predictions = np.array(post_predictions)
-    post_prob_predictions = np.mean(post_predictions, axis=0)
+        # if summary_mode == 0: # use argmax for each posterior sample
+        #     pred = np.argmax(pred, axis=1)
 
+
+
+def predictBNN(predict_features, pickle_file, test_labels=[], instance_id=[],
+               pickle_file_prior=0, threshold=0.95, bf=150, fname="",post_summary_mode=0):
+
+    post_softmax_probs,post_prob_predictions = get_posterior_cat_prob(predict_features, pickle_file,post_summary_mode=post_summary_mode)
     predictions_outdir = os.path.dirname(pickle_file)
     out_name = os.path.splitext(pickle_file)[0]
     out_name = os.path.basename(out_name)
@@ -313,15 +332,12 @@ def predictBNN(predict_features, pickle_file, test_labels=[], instance_id=[],
         out_file_acc = os.path.join(predictions_outdir, fname + out_name + '_accuracy.txt')
         with open(out_file_acc,'w') as outf:
             outf.writelines("Mean accuracy: %s (TP: %s; FP: %s)" % (mean_accuracy, TPrate, FPrate))
-        
     else:
         mean_accuracy = np.nan
-
     if pickle_file_prior:
         prior_samples = np_bnn.BNN_files.load_obj(pickle_file_prior)
         prior_weights = [prior_samples[i]['weights'] for i in range(len(prior_samples))]
         prior_alphas = [prior_samples[i]['alphas'] for i in range(len(prior_samples))]
-
         prior_predictions = []
         for i in range(lwn(prior_weights)):
             actFun = np_bnn.BNN_lib.genReLU(prm=prior_alphas[i])
@@ -344,55 +360,32 @@ def predictBNN(predict_features, pickle_file, test_labels=[], instance_id=[],
     else:
         np.savetxt(out_file_mean_pr, post_prob_predictions, fmt='%.3f')
     # print the arrays to file
-    np.save(out_file_post_pr, post_predictions)
+    np.save(out_file_post_pr, post_softmax_probs)
     print("Predictions saved in files:")
     print('   ', out_file_post_pr)
     print('   ', out_file_mean_pr,"\n")
     return {'post_prob_predictions': post_prob_predictions, 'mean_accuracy': mean_accuracy}
 
 
-def get_accuracy(features,weights_pkl,true_labels,feature_index_to_shuffle=None):
-    pred_features = features.copy()
-    # shuffle features if index is provided
-    if feature_index_to_shuffle:
-        # shuffle the feature values for the given feature between all instances
-        pred_features[:,feature_index_to_shuffle] = np.random.permutation(pred_features[:,feature_index_to_shuffle])
-    # load posterior weights
-    post_samples = np_bnn.BNN_files.load_obj(weights_pkl)
-    post_weights = [post_samples[i]['weights'] for i in range(len(post_samples))]
-    post_alphas = [post_samples[i]['alphas'] for i in range(len(post_samples))]
-    n_features = pred_features.shape[1]
-    if n_features < post_weights[0][0].shape[1]:
-        # add bias node
-        pred_features = np.c_[np.ones(pred_features.shape[0]), pred_features]
-    accuracies = []
-    for i in range(len(post_weights)):
-        actFun = genReLU(prm=post_alphas[i])
-        pred = RunPredict(pred_features, post_weights[i], actFun=actFun)
-        predicted_labels = np.argmax(pred, axis=1)
-        accuracy = np.sum(predicted_labels==true_labels)/len(predicted_labels)
-        accuracies.append(accuracy)
-    return np.array(accuracies)
-
-def feature_importance(input_features,weights_pkl,true_labels,fname_stem='',feature_names=[],verbose=False):
+def feature_importance(input_features,weights_pkl,true_labels,fname_stem='',feature_names=[],verbose=False,post_summary_mode=0):
     features = input_features.copy()
     # if no names are provided, name them by index
     if len(feature_names) == 0:
         feature_names = np.arange(features.shape[1]).astype(str)
     # get accuracy with all features
-    ref_accuracy = get_accuracy(features,weights_pkl,true_labels,feature_index_to_shuffle=None)
+    __,post_prob_predictions = get_posterior_cat_prob(input_features, weights_pkl,post_summary_mode=post_summary_mode)    
+    ref_accuracy = CalcAccuracy(post_prob_predictions, true_labels)
     # go through features and shuffle one at a time
     accuracies_wo_feature = []
     for feature_index,feature_name in enumerate(feature_names):
         if verbose:
             print('Testing importance of feature',feature_index+1)
-        accuracy = get_accuracy(features,weights_pkl,true_labels,feature_index_to_shuffle=feature_index)
+        __,post_prob_predictions = get_posterior_cat_prob(input_features, weights_pkl,feature_index_to_shuffle=feature_index,post_summary_mode=post_summary_mode)
+        accuracy = CalcAccuracy(post_prob_predictions, true_labels)
         accuracies_wo_feature.append(accuracy)
     accuracies_wo_feature = np.array(accuracies_wo_feature)
     delta_accs = ref_accuracy-np.array(accuracies_wo_feature)
-    delta_accs_means = np.mean(delta_accs,axis=1)
-    accuracies_wo_feature_means = np.mean(accuracies_wo_feature,axis=1)
-    feature_importance_df = pd.DataFrame(np.array([np.arange(0,len(feature_names)),feature_names,delta_accs_means,accuracies_wo_feature_means]).T,columns=['feature_index','feature_name','delta_acc','acc_with_feature_randomized'])
+    feature_importance_df = pd.DataFrame(np.array([np.arange(0,len(feature_names)),feature_names,delta_accs,accuracies_wo_feature]).T,columns=['feature_index','feature_name','delta_acc','acc_with_feature_randomized'])
     feature_importance_df.iloc[:,2:] = feature_importance_df.iloc[:,2:].astype('float')
     feature_importance_df_sorted = feature_importance_df.sort_values('delta_acc',ascending=False)
     # define outfile name
@@ -407,6 +400,33 @@ def feature_importance(input_features,weights_pkl,true_labels,fname_stem='',feat
     feature_importance_df_sorted['acc_with_feature_randomized'] = pd.to_numeric(feature_importance_df_sorted['acc_with_feature_randomized'])
     feature_importance_df_sorted.to_csv(feature_importance_df_filename,sep='\t',index=False,header=True,float_format='%.6f')
     return feature_importance_df_sorted
+
+
+
+# def get_accuracy(features,weights_pkl,true_labels,feature_index_to_shuffle=None):
+#     pred_features = features.copy()
+#     # shuffle features if index is provided
+#     if feature_index_to_shuffle:
+#         # shuffle the feature values for the given feature between all instances
+#         pred_features[:,feature_index_to_shuffle] = np.random.permutation(pred_features[:,feature_index_to_shuffle])
+#     # load posterior weights
+#     post_samples = np_bnn.BNN_files.load_obj(weights_pkl)
+#     post_weights = [post_samples[i]['weights'] for i in range(len(post_samples))]
+#     post_alphas = [post_samples[i]['alphas'] for i in range(len(post_samples))]
+#     n_features = pred_features.shape[1]
+#     if n_features < post_weights[0][0].shape[1]:
+#         # add bias node
+#         pred_features = np.c_[np.ones(pred_features.shape[0]), pred_features]
+#     accuracies = []
+#     for i in range(len(post_weights)):
+#         actFun = genReLU(prm=post_alphas[i])
+#         pred = RunPredict(pred_features, post_weights[i], actFun=actFun)
+#         predicted_labels = np.argmax(pred, axis=1)
+#         accuracy = np.sum(predicted_labels==true_labels)/len(predicted_labels)
+#         accuracies.append(accuracy)
+        
+#     return np.array(accuracies)
+
 
 
 
