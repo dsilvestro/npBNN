@@ -9,6 +9,8 @@ small_number = 1e-10
 import random, sys
 from numpy.random import MT19937
 from numpy.random import RandomState, SeedSequence
+import np_bnn.BNN_files
+import os
 
 # Activation functions
 class genReLU():
@@ -124,7 +126,7 @@ def UpdateBinomial(ind,update_f,shape_out):
 
 def CalcAccuracy(y,lab):
     prediction = np.argmax(y, axis=1)
-    return len(prediction[prediction==lab])/len(prediction)
+    return np.sum(prediction==lab)/len(prediction)
 
 def CalcConfusionMatrix(y,lab):
     prediction = np.argmax(y, axis=1)
@@ -267,8 +269,6 @@ def CalcFP_BF(y, y_p, lab, threshold=150):
 
 def predictBNN(predict_features, pickle_file, test_labels=[], instance_id=[],
                pickle_file_prior=0, threshold=0.95, bf=150, fname=""):
-    import np_bnn.BNN_files
-    import os
     if len(predict_features) ==0:
         print("Data not found.")
         return 0
@@ -352,7 +352,6 @@ def predictBNN(predict_features, pickle_file, test_labels=[], instance_id=[],
 
 
 def get_accuracy(features,weights_pkl,true_labels,feature_index_to_shuffle=None):
-    import np_bnn.BNN_files
     pred_features = features.copy()
     # shuffle features if index is provided
     if feature_index_to_shuffle:
@@ -371,12 +370,11 @@ def get_accuracy(features,weights_pkl,true_labels,feature_index_to_shuffle=None)
         actFun = genReLU(prm=post_alphas[i])
         pred = RunPredict(pred_features, post_weights[i], actFun=actFun)
         predicted_labels = np.argmax(pred, axis=1)
-        accuracy = len(predicted_labels[predicted_labels==true_labels])/len(predicted_labels)
+        accuracy = np.sum(predicted_labels==true_labels)/len(predicted_labels)
         accuracies.append(accuracy)
     return np.array(accuracies)
 
 def feature_importance(input_features,weights_pkl,true_labels,fname_stem='',feature_names=[],verbose=False):
-    import os
     features = input_features.copy()
     # if no names are provided, name them by index
     if len(feature_names) == 0:
@@ -391,10 +389,9 @@ def feature_importance(input_features,weights_pkl,true_labels,fname_stem='',feat
         accuracy = get_accuracy(features,weights_pkl,true_labels,feature_index_to_shuffle=feature_index)
         accuracies_wo_feature.append(accuracy)
     accuracies_wo_feature = np.array(accuracies_wo_feature)
-    delta_accs = np.round(ref_accuracy-np.array(accuracies_wo_feature),5)
+    delta_accs = ref_accuracy-np.array(accuracies_wo_feature)
     delta_accs_means = np.mean(delta_accs,axis=1)
     accuracies_wo_feature_means = np.mean(accuracies_wo_feature,axis=1)
-    accuracies_wo_feature_means = np.round(accuracies_wo_feature_means,5)
     feature_importance_df = pd.DataFrame(np.array([np.arange(0,len(feature_names)),feature_names,delta_accs_means,accuracies_wo_feature_means]).T,columns=['feature_index','feature_name','delta_acc','acc_with_feature_randomized'])
     feature_importance_df.iloc[:,2:] = feature_importance_df.iloc[:,2:].astype('float')
     feature_importance_df_sorted = feature_importance_df.sort_values('delta_acc',ascending=False)
