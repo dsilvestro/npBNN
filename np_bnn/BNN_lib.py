@@ -373,7 +373,7 @@ def get_accuracy(features,weights_pkl,true_labels,feature_index_to_shuffle=None)
         predicted_labels = np.argmax(pred, axis=1)
         accuracy = len(predicted_labels[predicted_labels==true_labels])/len(predicted_labels)
         accuracies.append(accuracy)
-    return np.mean(accuracies)
+    return np.array(accuracies)
 
 def feature_importance(input_features,weights_pkl,true_labels,fname_stem='',feature_names=[],verbose=False):
     import os
@@ -390,9 +390,12 @@ def feature_importance(input_features,weights_pkl,true_labels,fname_stem='',feat
             print('Testing importance of feature',feature_index+1)
         accuracy = get_accuracy(features,weights_pkl,true_labels,feature_index_to_shuffle=feature_index)
         accuracies_wo_feature.append(accuracy)
+    accuracies_wo_feature = np.array(accuracies_wo_feature)
     delta_accs = np.round(ref_accuracy-np.array(accuracies_wo_feature),5)
-    accuracies_wo_feature = np.round(accuracies_wo_feature,5)
-    feature_importance_df = pd.DataFrame(np.array([np.arange(0,len(feature_names)),feature_names,delta_accs,accuracies_wo_feature]).T,columns=['feature_index','feature_name','delta_acc','acc_with_feature_randomized'])
+    delta_accs_means = np.mean(delta_accs,axis=1)
+    accuracies_wo_feature_means = np.mean(accuracies_wo_feature,axis=1)
+    accuracies_wo_feature_means = np.round(accuracies_wo_feature_means,5)
+    feature_importance_df = pd.DataFrame(np.array([np.arange(0,len(feature_names)),feature_names,delta_accs_means,accuracies_wo_feature_means]).T,columns=['feature_index','feature_name','delta_acc','acc_with_feature_randomized'])
     feature_importance_df.iloc[:,2:] = feature_importance_df.iloc[:,2:].astype('float')
     feature_importance_df_sorted = feature_importance_df.sort_values('delta_acc',ascending=False)
     # define outfile name
