@@ -125,8 +125,12 @@ def UpdateBinomial(ind,update_f,shape_out):
     return np.abs(ind - np.random.binomial(1, np.random.random() * update_f, shape_out))
 
 def CalcAccuracy(y,lab):
-    prediction = np.argmax(y, axis=1)
-    return np.sum(prediction==lab)/len(prediction)
+    if len(y.shape) == 3: # if the posterior softmax array is used, return array of accuracies
+        acc = np.array([np.sum(i==lab)/len(i) for i in np.argmax(y,axis=2)])
+    else:
+        prediction = np.argmax(y, axis=1)
+        acc = np.sum(prediction==lab)/len(prediction)
+    return acc
 
 def CalcConfusionMatrix(y,lab):
     prediction = np.argmax(y, axis=1)
@@ -161,8 +165,6 @@ def GibbsSampleNormStdGammaONE(x,a=1.5,b=0.1,mu=0):
     tau = np.random.gamma(Gamma_a, scale=1./Gamma_b)
     return 1/np.sqrt(tau)
 
-
-
 def GibbsSampleGammaRateExp(sd,a,alpha_0=1.,beta_0=1.):
     # prior is on precision tau
     tau = 1./(sd**2) #np.array(tau_list)
@@ -170,11 +172,9 @@ def GibbsSampleGammaRateExp(sd,a,alpha_0=1.,beta_0=1.):
     conjugate_b = beta_0 + np.sum(tau)
     return np.random.gamma(conjugate_a,scale=1./conjugate_b)
 
-
 def SaveObject(obj, filename):
     with open(filename, 'wb') as output:  # Overwrites any existing file.
         pickle.dump(obj, output, pickle.HIGHEST_PROTOCOL)
-
 
 def RunPredict(data, weights, actFun):
     # weights: list of 2D arrays
@@ -373,19 +373,21 @@ def feature_importance(input_features,weights_pkl,true_labels,fname_stem='',feat
     if len(feature_names) == 0:
         feature_names = np.arange(features.shape[1]).astype(str)
     # get accuracy with all features
-    __,post_prob_predictions = get_posterior_cat_prob(input_features, weights_pkl,post_summary_mode=post_summary_mode)    
-    ref_accuracy = CalcAccuracy(post_prob_predictions, true_labels)
+    post_softmax_probs,post_prob_predictions = get_posterior_cat_prob(input_features, weights_pkl,post_summary_mode=post_summary_mode)    
+    ref_accuracy = CalcAccuracy(post_softmax_probs, true_labels)
     # go through features and shuffle one at a time
     accuracies_wo_feature = []
     for feature_index,feature_name in enumerate(feature_names):
         if verbose:
             print('Testing importance of feature',feature_index+1)
-        __,post_prob_predictions = get_posterior_cat_prob(input_features, weights_pkl,feature_index_to_shuffle=feature_index,post_summary_mode=post_summary_mode)
-        accuracy = CalcAccuracy(post_prob_predictions, true_labels)
+        post_softmax_probs,post_prob_predictions = get_posterior_cat_prob(input_features, weights_pkl,feature_index_to_shuffle=feature_index,post_summary_mode=post_summary_mode)
+        accuracy = CalcAccuracy(post_softmax_probs, true_labels)
         accuracies_wo_feature.append(accuracy)
     accuracies_wo_feature = np.array(accuracies_wo_feature)
-    delta_accs = ref_accuracy-np.array(accuracies_wo_feature)
-    feature_importance_df = pd.DataFrame(np.array([np.arange(0,len(feature_names)),feature_names,delta_accs,accuracies_wo_feature]).T,columns=['feature_index','feature_name','delta_acc','acc_with_feature_randomized'])
+    delta_accs = ref_accuracy-np.array(accuracies_wo_feature)    
+    delta_accs_means = np.mean(delta_accs,axis=1)
+    accuracies_wo_feature_means = np.mean(accuracies_wo_feature,axis=1)    
+    feature_importance_df = pd.DataFrame(np.array([np.arange(0,len(feature_names)),feature_names,delta_accs_means,accuracies_wo_feature_means]).T,columns=['feature_index','feature_name','delta_acc','acc_with_feature_randomized'])
     feature_importance_df.iloc[:,2:] = feature_importance_df.iloc[:,2:].astype('float')
     feature_importance_df_sorted = feature_importance_df.sort_values('delta_acc',ascending=False)
     # define outfile name
