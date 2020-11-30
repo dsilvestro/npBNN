@@ -104,6 +104,9 @@ class npBNN():
             elif self._prior == 3:
                 'Laplace'
                 self._prior_f = scipy.stats.laplace.logpdf
+            else:
+                print('Using default prior N(0,s)')
+                self._prior_f = scipy.stats.norm.logpdf
         # init prior scales: will be updated if hyper-priors
         self._prior_scale = np.ones(self._n_layers) * self._p_scale
 
@@ -177,10 +180,14 @@ class npBNN():
 
 
 class MCMC():
-    def __init__(self, bnn_obj, update_f=[0.05, 0.05, 0.8, 0.01], update_ws=[0.05, 0.075, 0.05],
+    def __init__(self, bnn_obj, update_f=None, update_ws=None,
                  temperature=1, n_iteration=100000, sampling_f=100, print_f=1000, n_post_samples=1000,
                  update_function=UpdateNormal, sample_from_prior=0, run_ID="", init_additional_prob=0,
-                 likelihood_tempering=1,mcmc_id=0,randomize_seed=False):
+                 likelihood_tempering=1, mcmc_id=0, randomize_seed=False):
+        if update_ws is None:
+            update_ws = [0.075] * bnn_obj._n_layers
+        if update_f is None:
+            update_f = [0.05] * bnn_obj._n_layers
         if run_ID == "":
             self._runID = bnn_obj._seed
         else:
