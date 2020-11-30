@@ -94,7 +94,7 @@ feature_importance = BNN_lib.feature_importance(dat['test_data'],
                                   fname_stem=dat['file_name'],
                                   feature_names=dat['feature_names'],
                                   feature_blocks = [[0,1,2,3,4,5,6,7],[8,9,10],[11,12,13,14,15,16,17,18,19,20]],
-                                  unlink_features_within_block = True)
+                                  unlink_features_within_block = False)
 
 # train+test data
 dat_all = BNN_files.get_data(f,l,
