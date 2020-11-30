@@ -367,28 +367,39 @@ def predictBNN(predict_features, pickle_file, test_labels=[], instance_id=[],
     return {'post_prob_predictions': post_prob_predictions, 'mean_accuracy': mean_accuracy}
 
 
-def feature_importance(input_features,weights_pkl,true_labels,fname_stem='',feature_names=[],verbose=False,post_summary_mode=0):
+def feature_importance(input_features,weights_pkl,true_labels,fname_stem='',feature_names=[],verbose=False,post_summary_mode=0,feature_blocks=[]):
     features = input_features.copy()
+    feature_indices = np.arange(features.shape[1])
     # if no names are provided, name them by index
     if len(feature_names) == 0:
-        feature_names = np.arange(features.shape[1]).astype(str)
+        feature_names = feature_indices.astype(str)
+    if len(feature_blocks) > 0:
+        selected_features = []
+        selected_feature_names = []
+        for block_indices in feature_blocks:
+            selected_features.append(list(np.array(feature_indices)[block_indices]))
+            selected_feature_names.append(list(np.array(feature_names)[block_indices]))
+    else:
+        selected_features = [[i] for i in feature_indices]
+        selected_feature_names = [[i] for i in feature_names]
+    feature_block_names = [','.join(np.array(i).astype(str)) for i in selected_feature_names] #join the feature names into one string for each block for output df
     # get accuracy with all features
     post_softmax_probs,post_prob_predictions = get_posterior_cat_prob(input_features, weights_pkl,post_summary_mode=post_summary_mode)    
     ref_accuracy = CalcAccuracy(post_softmax_probs, true_labels)
     # go through features and shuffle one at a time
     accuracies_wo_feature = []
-    for feature_index,feature_name in enumerate(feature_names):
+    for block_id,feature_block in enumerate(selected_features):
         if verbose:
-            print('Testing importance of feature',feature_index+1)
-        post_softmax_probs,post_prob_predictions = get_posterior_cat_prob(input_features, weights_pkl,feature_index_to_shuffle=feature_index,post_summary_mode=post_summary_mode)
+            print('Processing feature block %i',block_id+1)
+        post_softmax_probs,post_prob_predictions = get_posterior_cat_prob(input_features, weights_pkl,feature_index_to_shuffle=feature_block,post_summary_mode=post_summary_mode)
         accuracy = CalcAccuracy(post_softmax_probs, true_labels)
         accuracies_wo_feature.append(accuracy)
     accuracies_wo_feature = np.array(accuracies_wo_feature)
     delta_accs = ref_accuracy-np.array(accuracies_wo_feature)    
     delta_accs_means = np.mean(delta_accs,axis=1)
-    accuracies_wo_feature_means = np.mean(accuracies_wo_feature,axis=1)    
-    feature_importance_df = pd.DataFrame(np.array([np.arange(0,len(feature_names)),feature_names,delta_accs_means,accuracies_wo_feature_means]).T,columns=['feature_index','feature_name','delta_acc','acc_with_feature_randomized'])
-    feature_importance_df.iloc[:,2:] = feature_importance_df.iloc[:,2:].astype('float')
+    accuracies_wo_feature_means = np.mean(accuracies_wo_feature,axis=1)
+    feature_importance_df = pd.DataFrame(np.array([np.arange(0,len(selected_features)),feature_block_names,delta_accs_means,accuracies_wo_feature_means]).T,columns=['feature_block_index','feature_name','delta_acc','acc_with_feature_randomized'])
+    feature_importance_df.iloc[:,2:] = feature_importance_df.iloc[:,2:].astype(float)
     feature_importance_df_sorted = feature_importance_df.sort_values('delta_acc',ascending=False)
     # define outfile name
     predictions_outdir = os.path.dirname(weights_pkl)

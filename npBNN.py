@@ -92,7 +92,8 @@ feature_importance = BNN_lib.feature_importance(dat['test_data'],
                                   weights_pkl=logger._w_file,
                                   true_labels=dat['test_labels'],
                                   fname_stem=dat['file_name'],
-                                  feature_names=dat['feature_names'])
+                                  feature_names=dat['feature_names'],
+                                  feature_blocks = [[0,1,2,3,4,5,6,7],[8,9,10]])
 
 # train+test data
 dat_all = BNN_files.get_data(f,l,
