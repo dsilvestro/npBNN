@@ -265,7 +265,7 @@ def CalcFP_BF(y, y_p, lab, threshold=150):
     return np.sum(z[prediction != lab]) / len(prediction)
 
 
-def get_posterior_cat_prob(pred_features,pickle_file,feature_index_to_shuffle=None,post_summary_mode=0): # mode 0 is argmax, mode 1 is mean softmax
+def get_posterior_cat_prob(pred_features,pickle_file,feature_index_to_shuffle=None,post_summary_mode=0,unlink_features_within_block=False): # mode 0 is argmax, mode 1 is mean softmax
     if len(pred_features) ==0:
         print("Data not found.")
         return 0
@@ -273,9 +273,12 @@ def get_posterior_cat_prob(pred_features,pickle_file,feature_index_to_shuffle=No
         n_features = pred_features.shape[1]
     predict_features = pred_features.copy()
     # shuffle features if index is provided
-    if feature_index_to_shuffle:
-        # shuffle the feature values for the given feature between all instances
-        predict_features[:,feature_index_to_shuffle] = np.random.permutation(predict_features[:,feature_index_to_shuffle])
+    if feature_index_to_shuffle: # shuffle the feature values for the given feature between all instances
+        if unlink_features_within_block and type(feature_index_to_shuffle)==list:
+            for feature_index in feature_index_to_shuffle: # shuffle each column by it's own random indices
+                predict_features[:,feature_index] = np.random.permutation(predict_features[:,feature_index])
+        else:
+            predict_features[:,feature_index_to_shuffle] = np.random.permutation(predict_features[:,feature_index_to_shuffle])
     # load posterior weights
     post_samples = np_bnn.BNN_files.load_obj(pickle_file)
     post_weights = [post_samples[i]['weights'] for i in range(len(post_samples))]
@@ -367,7 +370,7 @@ def predictBNN(predict_features, pickle_file, test_labels=[], instance_id=[],
     return {'post_prob_predictions': post_prob_predictions, 'mean_accuracy': mean_accuracy}
 
 
-def feature_importance(input_features,weights_pkl,true_labels,fname_stem='',feature_names=[],verbose=False,post_summary_mode=0,feature_blocks=[]):
+def feature_importance(input_features,weights_pkl,true_labels,fname_stem='',feature_names=[],verbose=False,post_summary_mode=0,feature_blocks=[],unlink_features_within_block=False):
     features = input_features.copy()
     feature_indices = np.arange(features.shape[1])
     # if no names are provided, name them by index
@@ -391,7 +394,7 @@ def feature_importance(input_features,weights_pkl,true_labels,fname_stem='',feat
     for block_id,feature_block in enumerate(selected_features):
         if verbose:
             print('Processing feature block %i',block_id+1)
-        post_softmax_probs,post_prob_predictions = get_posterior_cat_prob(input_features, weights_pkl,feature_index_to_shuffle=feature_block,post_summary_mode=post_summary_mode)
+        post_softmax_probs,post_prob_predictions = get_posterior_cat_prob(input_features, weights_pkl,feature_index_to_shuffle=feature_block,post_summary_mode=post_summary_mode,unlink_features_within_block=unlink_features_within_block)
         accuracy = CalcAccuracy(post_softmax_probs, true_labels)
         accuracies_wo_feature.append(accuracy)
     accuracies_wo_feature = np.array(accuracies_wo_feature)
