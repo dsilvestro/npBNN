@@ -9,7 +9,7 @@ from np_bnn import BNN_env
 
 # get data
 def get_data(f,l=None,testsize=0.1, batch_training=0,seed=1234, all_class_in_testset=1,
-             instance_id=0, header=0):
+             instance_id=0, header=0,feature_indx=None):
     np.random.seed(seed)
     inst_id = []
     fname = os.path.splitext(os.path.basename(f))[0]
@@ -24,10 +24,16 @@ def get_data(f,l=None,testsize=0.1, batch_training=0,seed=1234, all_class_in_tes
             inst_id = tmp[:,0].astype(str)
         
     if header:
-        feature_names = next(open(f)).split()[1:]
+        feature_names = np.array(next(open(f)).split()[1:])
     else:
-        feature_names = ["feature_%s" % i for i in range(tot_x.shape[1])]
-    
+        feature_names = np.array(["feature_%s" % i for i in range(tot_x.shape[1])])
+
+    if feature_indx is not None:
+        feature_indx = np.array(feature_indx)
+        tot_x = tot_x[:,feature_indx]
+        feature_names = feature_names[feature_indx]
+
+
     if not l:
         return {'data': tot_x, 'labels': [], 'label_dict': [],
                 'test_data': [], 'test_labels': [],

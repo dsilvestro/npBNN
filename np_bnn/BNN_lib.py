@@ -339,7 +339,7 @@ def predictBNN(predict_features, pickle_file, test_labels=[], instance_id=[],
         prior_weights = [prior_samples[i]['weights'] for i in range(len(prior_samples))]
         prior_alphas = [prior_samples[i]['alphas'] for i in range(len(prior_samples))]
         prior_predictions = []
-        for i in range(lwn(prior_weights)):
+        for i in range(len(prior_weights)):
             actFun = np_bnn.BNN_lib.genReLU(prm=prior_alphas[i])
             pred = RunPredict(predict_features, prior_weights[i], actFun=actFun)
             prior_predictions.append(pred)
