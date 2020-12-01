@@ -11,13 +11,15 @@ from numpy.random import MT19937
 from numpy.random import RandomState, SeedSequence
 import np_bnn.BNN_files
 import os
-import tensorflow as tf
 try:
-    os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"  # disable tf compilation warning
-    os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE" # avoid error about multiple copies of the OpenMP runtime 
+    import tensorflow as tf
+    try:
+        os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"  # disable tf compilation warning
+        os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE" # avoid error about multiple copies of the OpenMP runtime 
+    except:
+        pass
 except:
-    pass
-
+    print(' ')
 
 # Activation functions
 class genReLU():
@@ -138,6 +140,16 @@ def CalcAccuracy(y,lab):
         prediction = np.argmax(y, axis=1)
         acc = np.sum(prediction==lab)/len(prediction)
     return acc
+
+def CalcLabelAccuracy(y,lab):
+    prediction = np.argmax(y, axis=1)
+    label_accs = []
+    for label in np.unique(lab):
+        cat_lab = lab[lab==label]
+        cat_prediction = prediction[lab==label]
+        acc = np.sum(cat_prediction==cat_lab)/len(cat_prediction)
+        label_accs.append(acc)
+    return np.array(label_accs)
 
 def CalcConfusionMatrix(y,lab):
     prediction = np.argmax(y, axis=1)
@@ -305,7 +317,6 @@ def get_posterior_cat_prob(pred_features,pickle_file,feature_index_to_shuffle=No
         posterior_prob_classes = np.zeros([n_instances,n_classes])
         classes_and_counts = [[np.unique(i,return_counts=True)[0],np.unique(i,return_counts=True)[1]] for i in class_call_posterior]
         for i,class_count in enumerate(classes_and_counts):
-            print
             for j,class_index in enumerate(class_count[0]):
                 posterior_prob_classes[i,class_index] = class_count[1][j]
         posterior_prob_classes = posterior_prob_classes/n_posterior_samples
@@ -433,13 +444,13 @@ def get_weights_from_tensorflow_model(model_dir):
     for layer in model.layers:
         #layer_name = layer.weights[0].name 
         layer_shape = np.array(layer.weights[0].shape)
-        weights = layer.weights[0].numpy()
+        weights = layer.weights[0].numpy().T
         n_nodes_list.append(layer_shape[1])
         init_weights.append(weights)
         if len(layer.weights) == 2: #bias node layer
             bias_node = layer.weights[1].numpy()
             bias_node_weights.append(bias_node)
-    return([n_nodes_list,init_weights,bias_node_weights])
+    return([n_nodes_list[:-1],init_weights,bias_node_weights])
 
 
 

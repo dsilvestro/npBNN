@@ -13,7 +13,7 @@ class npBNN():
     def __init__(self, dat, n_nodes=[50, 5],
                  use_bias_node=1, init_std=0.1, p_scale=1, prior_ind1=0.5,
                  prior_f=1, hyper_p=0, freq_indicator=0, w_bound=np.infty,
-                 pickle_file="", seed=1234, use_class_weights=0, actFun=genReLU(),init_weights=[]):
+                 pickle_file="", seed=1234, use_class_weights=0, actFun=genReLU(),init_weights=None):
         # prior_f: 0) uniform 1) normal 2) cauchy
         # to change the boundaries of a uniform prior use -p_scale
         # hyper_p: 0) no hyperpriors, 1) 1 per layer, 2) 1 per input node, 3) 1 per node
@@ -68,7 +68,7 @@ class npBNN():
             self._class_w = []
 
         # init weights
-        if len(init_weights)==0:
+        if init_weights is None:
             if pickle_file == "":
                 # 1st layer
                 w_layers = [np.random.normal(0, self._init_std, (self._n_nodes[0], self._n_features))]
@@ -83,6 +83,7 @@ class npBNN():
                 w_layers = post_weights[-1]
         else:
             w_layers = init_weights
+            #self._n_layers -= 1
         self._w_layers = w_layers
 
         self._indicators = np.ones(self._w_layers[0].shape)
@@ -216,6 +217,7 @@ class MCMC():
         self._logPrior = bnn_obj.calc_prior() + init_additional_prob
         self._logPost = self._logLik + self._logPrior
         self._accuracy = CalcAccuracy(self._y, bnn_obj._labels)
+        self._label_acc = CalcLabelAccuracy(self._y, bnn_obj._labels)
         if len(bnn_obj._test_data) > 0:
             self._y_test = RunPredictInd(bnn_obj._test_data, bnn_obj._w_layers, bnn_obj._indicators,bnn_obj._act_fun)
             self._test_accuracy = CalcAccuracy(self._y_test, bnn_obj._test_labels)
@@ -292,6 +294,7 @@ class MCMC():
             self._logPrior = logPrior_prime
             self._y = y_prime
             self._accuracy = CalcAccuracy(self._y, bnn_obj._labels_reset)
+            self._label_acc = CalcLabelAccuracy(self._y, bnn_obj._labels_reset)
             self._label_freq = CalcLabelFreq(self._y)
             if len(bnn_obj._test_data) > 0:
                 self._y_test = RunPredictInd(bnn_obj._test_data, bnn_obj._w_layers,
@@ -352,7 +355,7 @@ class postLogger():
 
     def log_sample(self, bnn_obj, mcmc_obj, add_prms=None):
         row = [mcmc_obj._current_iteration, mcmc_obj._logPost, mcmc_obj._logLik, mcmc_obj._logPrior,
-               mcmc_obj._accuracy, mcmc_obj._test_accuracy] + list(mcmc_obj._label_freq)
+               mcmc_obj._accuracy, mcmc_obj._test_accuracy] + list(mcmc_obj._label_acc)#list(mcmc_obj._label_freq)
         for i in range(bnn_obj._n_layers):
             row = row + [np.mean(bnn_obj._w_layers[i]), np.std(bnn_obj._w_layers[i])]
             if bnn_obj._hyper_p:
