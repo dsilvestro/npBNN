@@ -11,6 +11,13 @@ from numpy.random import MT19937
 from numpy.random import RandomState, SeedSequence
 import np_bnn.BNN_files
 import os
+import tensorflow as tf
+try:
+    os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"  # disable tf compilation warning
+    os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE" # avoid error about multiple copies of the OpenMP runtime 
+except:
+    pass
+
 
 # Activation functions
 class genReLU():
@@ -418,31 +425,21 @@ def feature_importance(input_features,weights_pkl,true_labels,fname_stem='',feat
     return feature_importance_df_sorted
 
 
-
-# def get_accuracy(features,weights_pkl,true_labels,feature_index_to_shuffle=None):
-#     pred_features = features.copy()
-#     # shuffle features if index is provided
-#     if feature_index_to_shuffle:
-#         # shuffle the feature values for the given feature between all instances
-#         pred_features[:,feature_index_to_shuffle] = np.random.permutation(pred_features[:,feature_index_to_shuffle])
-#     # load posterior weights
-#     post_samples = np_bnn.BNN_files.load_obj(weights_pkl)
-#     post_weights = [post_samples[i]['weights'] for i in range(len(post_samples))]
-#     post_alphas = [post_samples[i]['alphas'] for i in range(len(post_samples))]
-#     n_features = pred_features.shape[1]
-#     if n_features < post_weights[0][0].shape[1]:
-#         # add bias node
-#         pred_features = np.c_[np.ones(pred_features.shape[0]), pred_features]
-#     accuracies = []
-#     for i in range(len(post_weights)):
-#         actFun = genReLU(prm=post_alphas[i])
-#         pred = RunPredict(pred_features, post_weights[i], actFun=actFun)
-#         predicted_labels = np.argmax(pred, axis=1)
-#         accuracy = np.sum(predicted_labels==true_labels)/len(predicted_labels)
-#         accuracies.append(accuracy)
-        
-#     return np.array(accuracies)
-
+def get_weights_from_tensorflow_model(model_dir):
+    model = tf.keras.models.load_model(model_dir)
+    n_nodes_list = []
+    init_weights = []
+    bias_node_weights = []
+    for layer in model.layers:
+        #layer_name = layer.weights[0].name 
+        layer_shape = np.array(layer.weights[0].shape)
+        weights = layer.weights[0].numpy()
+        n_nodes_list.append(layer_shape[1])
+        init_weights.append(weights)
+        if len(layer.weights) == 2: #bias node layer
+            bias_node = layer.weights[1].numpy()
+            bias_node_weights.append(bias_node)
+    return([n_nodes_list,init_weights,bias_node_weights])
 
 
 

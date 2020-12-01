@@ -13,7 +13,7 @@ class npBNN():
     def __init__(self, dat, n_nodes=[50, 5],
                  use_bias_node=1, init_std=0.1, p_scale=1, prior_ind1=0.5,
                  prior_f=1, hyper_p=0, freq_indicator=0, w_bound=np.infty,
-                 pickle_file="", seed=1234, use_class_weights=0, actFun=genReLU()):
+                 pickle_file="", seed=1234, use_class_weights=0, actFun=genReLU(),init_weights=[]):
         # prior_f: 0) uniform 1) normal 2) cauchy
         # to change the boundaries of a uniform prior use -p_scale
         # hyper_p: 0) no hyperpriors, 1) 1 per layer, 2) 1 per input node, 3) 1 per node
@@ -68,18 +68,21 @@ class npBNN():
             self._class_w = []
 
         # init weights
-        if pickle_file == "":
-            # 1st layer
-            w_layers = [np.random.normal(0, self._init_std, (self._n_nodes[0], self._n_features))]
-            # add hidden layers
-            for i in range(1, self._n_layers - 1):
-                w_layers.append(np.random.normal(0, self._init_std, (self._n_nodes[i], self._n_nodes[i - 1])))
-            # last layer
-            w_layers.append(np.random.normal(0, self._init_std, (self._size_output, self._n_nodes[-1])))
+        if len(init_weights)==0:
+            if pickle_file == "":
+                # 1st layer
+                w_layers = [np.random.normal(0, self._init_std, (self._n_nodes[0], self._n_features))]
+                # add hidden layers
+                for i in range(1, self._n_layers - 1):
+                    w_layers.append(np.random.normal(0, self._init_std, (self._n_nodes[i], self._n_nodes[i - 1])))
+                # last layer
+                w_layers.append(np.random.normal(0, self._init_std, (self._size_output, self._n_nodes[-1])))
+            else:
+                post_samples = np_bnn.BNN_files.load_obj(pickle_file)
+                post_weights = [post_samples[i]['weights'] for i in range(len(post_samples))]
+                w_layers = post_weights[-1]
         else:
-            post_samples = np_bnn.BNN_files.load_obj(pickle_file)
-            post_weights = [post_samples[i]['weights'] for i in range(len(post_samples))]
-            w_layers = post_weights[-1]
+            w_layers = init_weights
         self._w_layers = w_layers
 
         self._indicators = np.ones(self._w_layers[0].shape)

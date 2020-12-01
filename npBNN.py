@@ -141,3 +141,53 @@ mcmc = BNN_env.MCMC(bnn,
                     sampling_f=100,
                     print_f=1000,
                     n_post_samples=100)
+
+
+
+
+
+from np_bnn import BNN_env, BNN_files, BNN_lib
+
+# set random seed
+rseed = 1234
+np.random.seed(rseed)
+
+# load data (2 files: features and labels)
+f= "./example_files/data_features.txt"
+l= "./example_files/data_labels.txt"
+# with testsize=0.1, 10% of the data are randomly selected as test set
+# if all_class_in_testset = 1: 10% of the samples and a minimum of 1 sample
+# for each class are represented in the test set
+dat = BNN_files.get_data(f,l,
+                         seed=rseed,
+                         testsize=0.1, # 10% test set
+                         all_class_in_testset=1,
+                         header=1, # input data has a header
+                         instance_id=1) # input data includes names of instances
+
+# set up model architecture and priors
+alphas = np.zeros(len(n_nodes_list))
+activation_function = BNN_lib.genReLU(prm=alphas, trainable=True) # To use default ReLU: BNN_lib.genReLU()
+prior = 1 # 0) uniform, 1) normal, 2) Cauchy, 3) Laplace
+p_scale = 1 # std for Normal, scale parameter for Cauchy and Laplace, boundaries for Uniform
+use_class_weight = 0 # set to 1 to use class weights for unbalanced classes
+# get nodes list and initial weights from tensorflow model
+model_dir = "/Users/xhofmt/GitHub/madagascar_iucnn/models/iuc_nn_100606020NOB"
+n_nodes_list,init_weights,bias_node_weights = BNN_lib.get_weights_from_tensorflow_model(model_dir)
+# set up the BNN model
+bnn = BNN_env.npBNN(dat,
+                    n_nodes = n_nodes_list,
+                    use_class_weights=use_class_weight,
+                    actFun=activation_function,
+                    use_bias_node=0,
+                    prior_f=prior,
+                    p_scale=p_scale,
+                    seed=rseed,
+                    init_weights=init_weights)
+
+
+
+
+    
+
+
