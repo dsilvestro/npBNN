@@ -118,6 +118,20 @@ def UpdateNormal(i, d=0.01, n=1, Mb=100, mb= -100, rs=0):
     hastings = 0
     return z, (Ix, Iy), hastings
 
+def UpdateNormalNormalized(i, d=0.01, n=1, Mb=100, mb= -100, rs=0):
+    if not rs:
+        rseed = random.randint(1000, 9999)
+        rs = RandomState(MT19937(SeedSequence(rseed)))
+    Ix = rs.randint(0, i.shape[0],n) # faster than np.random.choice
+    Iy = rs.randint(0, i.shape[1],n)
+    z = np.zeros(i.shape) + i
+    z[Ix,Iy] = z[Ix,Iy] + rs.normal(0, d[Ix,Iy], n)
+    z = z/np.sum(z)
+    hastings = 0
+    return z, (Ix, Iy), hastings
+
+
+
 def UpdateUniform(i, d=0.1, n=1, Mb=100, mb= -100):
     Ix = np.random.randint(0, i.shape[0],n) # faster than np.random.choice
     Iy = np.random.randint(0, i.shape[1],n)
