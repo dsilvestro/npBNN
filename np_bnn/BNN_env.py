@@ -54,6 +54,7 @@ class npBNN():
         if use_class_weights:
             class_counts = np.unique(self._labels, return_counts=True)[1]
             self._class_w = 1 / (class_counts / np.max(class_counts))
+            self._class_w = self._class_w / np.mean(self._class_w)
             print("Using class weights:", self._class_w)
         else:
             self._class_w = []

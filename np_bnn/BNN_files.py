@@ -9,7 +9,7 @@ from np_bnn import BNN_env
 
 # get data
 def get_data(f,l=None,testsize=0.1, batch_training=0,seed=1234, all_class_in_testset=1,
-             instance_id=0, header=0,feature_indx=None):
+             instance_id=0, header=0,feature_indx=None,randomize_order=True):
     np.random.seed(seed)
     inst_id = []
     fname = os.path.splitext(os.path.basename(f))[0]
@@ -47,7 +47,8 @@ def get_data(f,l=None,testsize=0.1, batch_training=0,seed=1234, all_class_in_tes
     x, labels, x_test, labels_test, inst_id_x, inst_id_x_test = randomize_data(tot_x, tot_labels_numeric,
                                                                                testsize=testsize,
                                                                                all_class_in_testset=all_class_in_testset,
-                                                                               inst_id=inst_id)
+                                                                               inst_id=inst_id,
+                                                                               randomize=randomize_order)
 
     if batch_training:
         indx = np.random.randint(0,len(labels),batch_training)
@@ -172,13 +173,13 @@ def randomize_data(tot_x, tot_labels, testsize=0.1, all_class_in_testset=1, inst
             inst_id_x = tot_inst_id
             inst_id_test = []
     else:
-        x_test = tot_x[0:test_set_ind, :]
-        labels_test = tot_labels[0:test_set_ind]
-        x = tot_x[test_set_ind:, :]
-        labels = tot_labels[test_set_ind:]
+        x_test = tot_x[-test_set_ind:, :]
+        labels_test = tot_labels[-test_set_ind:]
+        x = tot_x[:-test_set_ind, :]
+        labels = tot_labels[:-test_set_ind]
         if len(inst_id):
-            inst_id_test = tot_inst_id[0:test_set_ind]
-            inst_id_x = tot_inst_id[test_set_ind:]
+            inst_id_test = tot_inst_id[-test_set_ind:]
+            inst_id_x = tot_inst_id[:-test_set_ind]
          
     return x, labels, x_test, labels_test, inst_id_x, inst_id_test
 

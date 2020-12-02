@@ -53,6 +53,11 @@ def calc_likelihood(prediction, labels, sample_id, class_weight=[], lik_temp=1):
     if len(class_weight):
         return lik_temp * np.sum(np.log(prediction[sample_id, labels])*class_weight[labels])
     else:
+        # if lik_temp != 1:
+        #     tempered_prediction = lik_temp ** prediction
+        #     normalized_tempered_prediction = np.einsum('xy,x->xy', tempered_prediction, 1 / np.sum(tempered_prediction,axis=1))
+        #     return np.sum(np.log(normalized_tempered_prediction[sample_id, labels]))
+        # else:
         return lik_temp * np.sum(np.log(prediction[sample_id, labels]))
 
 
