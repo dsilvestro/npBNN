@@ -128,11 +128,15 @@ def init_output_files(bnn_obj, filename="BNN", sample_from_prior=0, outpath="",a
     return wlog, logfile, w_file_name, wweights
 
 
-def randomize_data(tot_x, tot_labels, testsize=0.1, all_class_in_testset=1, inst_id=[]):
-    if testsize:
-        rnd_order = np.random.choice(range(len(tot_labels)), len(tot_labels), replace=False)
+def randomize_data(tot_x, tot_labels, testsize=0.1, all_class_in_testset=1, inst_id=[], randomize=True):
+    if randomize:
+        if testsize:
+            rnd_order = np.random.choice(range(len(tot_labels)), len(tot_labels), replace=False)
+        else:
+            rnd_order = np.arange(len(tot_labels))
     else:
         rnd_order = np.arange(len(tot_labels))
+        all_class_in_testset=0
     tot_x = tot_x[rnd_order]
     tot_labels = tot_labels[rnd_order]
     test_set_ind = int(testsize * len(tot_labels))

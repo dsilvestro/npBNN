@@ -1,7 +1,6 @@
 import numpy as np
 from concurrent.futures import ProcessPoolExecutor
-np.set_printoptions(suppress=1)  # prints floats, no scientific notation
-np.set_printoptions(precision=3)  # rounds all array elements to 3rd digit
+np.set_printoptions(suppress=True, precision=3)
 
 from np_bnn import BNN_env, BNN_files, BNN_lib
 
@@ -42,7 +41,6 @@ if n_chains == 1:
 else:
     temperatures = np.linspace(0.8, 1, n_chains)
 mcmcList = [BNN_env.MCMC(bnnList[i],
-                         update_f=[0.05, 0.04, 0.07, 0.02], update_ws=[0.075, 0.075, 0.075],
                          temperature=temperatures[i], likelihood_tempering=1.2,
                          n_iteration=100, sampling_f=100, print_f=1000, n_post_samples=100,
                          mcmc_id=i, randomize_seed=True)

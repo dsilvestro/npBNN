@@ -51,17 +51,8 @@ class npBNN():
         self._p_scale = p_scale
         self._prior_ind1 = prior_ind1
 
-        # reset labels
-        self._labels_reset = np.zeros(len(self._labels)).astype(int)
-        self._test_labels_reset = np.zeros(len(self._test_labels)).astype(int)
-        j = 0
-        for i in np.unique(self._labels):
-            self._labels_reset[self._labels == i] = j
-            self._test_labels_reset[self._test_labels == i] = j
-            j += 1
-
         if use_class_weights:
-            class_counts = np.unique(self._labels_reset, return_counts=True)[1]
+            class_counts = np.unique(self._labels, return_counts=True)[1]
             self._class_w = 1 / (class_counts / np.max(class_counts))
             print("Using class weights:", self._class_w)
         else:
@@ -210,7 +201,7 @@ class MCMC():
             self._logLik = 0
         else:
             self._logLik = calc_likelihood(self._y,
-                                           bnn_obj._labels_reset,
+                                           bnn_obj._labels,
                                            bnn_obj._sample_id,
                                            bnn_obj._class_w,
                                            likelihood_tempering)
@@ -278,7 +269,7 @@ class MCMC():
         else:
             # TODO: expose self._lik_temp as parameter that can be estimated by MCMC
             logLik_prime = calc_likelihood(y_prime,
-                                           bnn_obj._labels_reset,
+                                           bnn_obj._labels,
                                            bnn_obj._sample_id,
                                            bnn_obj._class_w,
                                            self._lik_temp)
@@ -293,13 +284,13 @@ class MCMC():
             self._logLik = logLik_prime
             self._logPrior = logPrior_prime
             self._y = y_prime
-            self._accuracy = CalcAccuracy(self._y, bnn_obj._labels_reset)
-            self._label_acc = CalcLabelAccuracy(self._y, bnn_obj._labels_reset)
+            self._accuracy = CalcAccuracy(self._y, bnn_obj._labels)
+            self._label_acc = CalcLabelAccuracy(self._y, bnn_obj._labels)
             self._label_freq = CalcLabelFreq(self._y)
             if len(bnn_obj._test_data) > 0:
                 self._y_test = RunPredictInd(bnn_obj._test_data, bnn_obj._w_layers,
                                              bnn_obj._indicators, bnn_obj._act_fun)
-                self._test_accuracy = CalcAccuracy(self._y_test, bnn_obj._test_labels_reset)
+                self._test_accuracy = CalcAccuracy(self._y_test, bnn_obj._test_labels)
             else:
                 self._y_test = []
                 self._test_accuracy = 0
