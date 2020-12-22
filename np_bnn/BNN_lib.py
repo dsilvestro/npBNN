@@ -302,8 +302,25 @@ def CalcFP_BF(y, y_p, lab, threshold=150):
     z[bf > threshold] = 1
     return np.sum(z[prediction != lab]) / len(prediction)
 
+def CalcAccAboveThreshold(y,lab, threshold=0.95):
+    max_prob = np.max(y, axis=1)
+    supported_estimate = np.where(max_prob > threshold)
 
-def get_posterior_cat_prob(pred_features,pickle_file,feature_index_to_shuffle=None,post_summary_mode=0,unlink_features_within_block=False): # mode 0 is argmax, mode 1 is mean softmax
+    prediction = np.argmax(y, axis=1)[supported_estimate]
+    max_p = y[range(len(prediction)),prediction]
+    z = np.zeros(len(prediction))
+    z[max_p > threshold] = 1
+    res= np.sum(z[prediction == lab[supported_estimate]])/len(prediction)
+
+    print(res)
+
+
+def get_posterior_cat_prob(pred_features,
+                           pickle_file=None,
+                           post_samples=None,
+                           feature_index_to_shuffle=None,
+                           post_summary_mode=0, # mode 0 is argmax, mode 1 is mean softmax
+                           unlink_features_within_block=False):
     if len(pred_features) ==0:
         print("Data not found.")
         return 0
@@ -318,7 +335,8 @@ def get_posterior_cat_prob(pred_features,pickle_file,feature_index_to_shuffle=No
         else:
             predict_features[:,feature_index_to_shuffle] = np.random.permutation(predict_features[:,feature_index_to_shuffle])
     # load posterior weights
-    post_samples = np_bnn.BNN_files.load_obj(pickle_file)
+    if pickle_file is not None:
+        post_samples = np_bnn.BNN_files.load_obj(pickle_file)
     post_weights = [post_samples[i]['weights'] for i in range(len(post_samples))]
     post_alphas = [post_samples[i]['alphas'] for i in range(len(post_samples))]
     if n_features < post_weights[0][0].shape[1]:
@@ -348,19 +366,29 @@ def get_posterior_cat_prob(pred_features,pickle_file,feature_index_to_shuffle=No
 
 
 
-def predictBNN(predict_features, pickle_file, test_labels=[], instance_id=[],
-               pickle_file_prior=0, threshold=0.95, bf=150, fname="",post_summary_mode=0):
+def predictBNN(predict_features, pickle_file=None, post_samples=None, test_labels=[], instance_id=[],
+               pickle_file_prior=0, threshold=0.95, bf=150, fname="",post_summary_mode=0,
+               wd=""):
 
-    post_softmax_probs,post_prob_predictions = get_posterior_cat_prob(predict_features, pickle_file,post_summary_mode=post_summary_mode)
-    predictions_outdir = os.path.dirname(pickle_file)
-    out_name = os.path.splitext(pickle_file)[0]
-    out_name = os.path.basename(out_name)
+    post_softmax_probs,post_prob_predictions = get_posterior_cat_prob(predict_features,
+                                                                      pickle_file,
+                                                                      post_samples,
+                                                                      post_summary_mode=post_summary_mode)
+    
+    if pickle_file:
+        predictions_outdir = os.path.dirname(pickle_file)
+        out_name = os.path.splitext(pickle_file)[0]
+        out_name = os.path.basename(out_name)
+    else:
+        predictions_outdir = wd
+        out_name = ""
     if fname != "":
         fname = fname + "_"
     out_file_post_pr = os.path.join(predictions_outdir, fname + out_name + '_pred_pr.npy')
     out_file_mean_pr = os.path.join(predictions_outdir, fname + out_name + '_pred_mean_pr.txt')
 
     if len(test_labels) > 0:
+        CalcAccAboveThreshold(post_prob_predictions, test_labels, threshold=0.95)
         accuracy = CalcAccuracy(post_prob_predictions, test_labels)
         TPrate = CalcTP(post_prob_predictions, test_labels, threshold=threshold)
         FPrate = CalcFP(post_prob_predictions, test_labels, threshold=threshold)
@@ -472,6 +500,14 @@ def get_weights_from_tensorflow_model(model_dir):
     return([n_nodes_list[:-1],init_weights,bias_node_weights])
 
 
-
+def get_accuracy_threshold(probs, labels, threshold=0.75):
+    indx = np.where(np.max(probs, axis=1)>threshold)[0]
+    res_supported = probs[indx,:]
+    labels_supported = labels[indx]
+    pred = np.argmax(res_supported, axis=1)
+    accuracy = len(pred[pred == labels_supported])/len(pred)
+    dropped_frequency = len(pred)/len(labels)
+    cm = CalcConfusionMatrix(res_supported, labels_supported)
+    return {'predictions': pred, 'accuracy': accuracy, 'retained_samples': dropped_frequency, 'confusion_matrix': cm}
 
 

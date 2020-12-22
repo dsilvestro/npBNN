@@ -4,6 +4,7 @@ import scipy.stats
 from np_bnn.BNN_lib import *
 import os
 import csv
+import glob
 
 from np_bnn import BNN_env
 
@@ -185,9 +186,31 @@ def randomize_data(tot_x, tot_labels, testsize=0.1, all_class_in_testset=1, inst
 
 
 def load_obj(file_name):
-    with open(file_name, 'rb') as f:
-        return pickle.load(f)
+    try:
+        with open(file_name, 'rb') as f:
+            return pickle.load(f)
+    except:
+        import pickle5
+        with open(file_name, 'rb') as f:
+            return pickle5.load(f)
 
+def merge_dict(d1, d2):
+    from collections import defaultdict
+    d = defaultdict(list)
+    for a, b in d1.items() + d2.items():
+        d[a].append(b)
+    return d
+
+
+def combine_pkls(files=None, dir=None, tag=""):
+    if dir is not None:
+        files = glob.glob(os.path.join(dir, "*%s*.pkl" % tag))
+        print("Combining files: ", files)
+    comb_pkl = list()
+    for f in files:
+        w = load_obj(f)
+        comb_pkl = comb_pkl + w
+    return comb_pkl
 
 def turn_labels_to_numeric(labels,label_file,save_to_file=False):
     numerical_labels = np.zeros(len(labels)).astype(int)
