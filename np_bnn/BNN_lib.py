@@ -510,4 +510,16 @@ def get_accuracy_threshold(probs, labels, threshold=0.75):
     cm = CalcConfusionMatrix(res_supported, labels_supported)
     return {'predictions': pred, 'accuracy': accuracy, 'retained_samples': dropped_frequency, 'confusion_matrix': cm}
 
-
+def run_mcmc(bnn, mcmc, logger):
+    while True:
+        mcmc.mh_step(bnn)
+        # print some stats (iteration number, likelihood, training accuracy, test accuracy
+        if mcmc._current_iteration % mcmc._print_f == 0 or mcmc._current_iteration == 1:
+            print(mcmc._current_iteration, np.round([mcmc._logLik, mcmc._accuracy, mcmc._test_accuracy],3))
+        # save to file
+        if mcmc._current_iteration % mcmc._sampling_f == 0:
+            logger.log_sample(bnn,mcmc)
+            logger.log_weights(bnn,mcmc)
+        # stop MCMC after running desired number of iterations
+        if mcmc._current_iteration == mcmc._n_iterations:
+            break

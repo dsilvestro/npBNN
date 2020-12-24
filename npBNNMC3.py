@@ -31,8 +31,8 @@ rseeds = np.random.choice(range(1000,9999), n_chains, replace=False)
 
 
 bnnList = [BNN_env.npBNN(dat, n_nodes = n_nodes_list, use_class_weights=use_class_weight,
-                        use_bias_node = 1, prior_f = prior, p_scale = p_scale,
-                        seed=rseeds[i], init_std=0.1)
+                         use_bias_node = 1, prior_f = prior, p_scale = p_scale,
+                         seed=rseeds[i], init_std=0.1)
            for i in range(n_chains)]
 
 
