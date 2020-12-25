@@ -84,7 +84,7 @@ feature_importance = bn.feature_importance(dat['test_data'],
 
 # train+test data
 dat_all = bn.get_data(f,l,
-                      testsize=0, # 10% test set
+                      testsize=0, # no test set
                       header=1, # input data has a header
                       instance_id=1) # input data includes names of instances
 
@@ -96,7 +96,6 @@ post_pr_all = bn.predictBNN(dat_all['data'],
 
 # predict new unlabeled data
 new_dat = bn.get_data(f="./example_files/unlabeled_data.txt",
-                      testsize=0, # 10% test set
                       header=1, # input data has a header
                       instance_id=1) # input data includes names of instances
 
