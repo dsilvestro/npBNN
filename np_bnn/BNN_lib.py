@@ -9,7 +9,7 @@ small_number = 1e-10
 import random, sys
 from numpy.random import MT19937
 from numpy.random import RandomState, SeedSequence
-import np_bnn.BNN_files
+from . import BNN_files
 import os
 try:
     import tensorflow as tf
@@ -336,7 +336,7 @@ def get_posterior_cat_prob(pred_features,
             predict_features[:,feature_index_to_shuffle] = np.random.permutation(predict_features[:,feature_index_to_shuffle])
     # load posterior weights
     if pickle_file is not None:
-        post_samples = np_bnn.BNN_files.load_obj(pickle_file)
+        post_samples = BNN_files.load_obj(pickle_file)
     post_weights = [post_samples[i]['weights'] for i in range(len(post_samples))]
     post_alphas = [post_samples[i]['alphas'] for i in range(len(post_samples))]
     if n_features < post_weights[0][0].shape[1]:
@@ -344,7 +344,7 @@ def get_posterior_cat_prob(pred_features,
         predict_features = np.c_[np.ones(predict_features.shape[0]), predict_features]
     post_cat_probs = []
     for i in range(len(post_weights)):
-        actFun = np_bnn.BNN_lib.genReLU(prm=post_alphas[i])
+        actFun = BNN_lib.genReLU(prm=post_alphas[i])
         pred = RunPredict(predict_features, post_weights[i], actFun=actFun)
         post_cat_probs.append(pred)
     post_softmax_probs = np.array(post_cat_probs)
@@ -403,12 +403,12 @@ def predictBNN(predict_features, pickle_file=None, post_samples=None, test_label
     else:
         mean_accuracy = np.nan
     if pickle_file_prior:
-        prior_samples = np_bnn.BNN_files.load_obj(pickle_file_prior)
+        prior_samples = BNN_files.load_obj(pickle_file_prior)
         prior_weights = [prior_samples[i]['weights'] for i in range(len(prior_samples))]
         prior_alphas = [prior_samples[i]['alphas'] for i in range(len(prior_samples))]
         prior_predictions = []
         for i in range(len(prior_weights)):
-            actFun = np_bnn.BNN_lib.genReLU(prm=prior_alphas[i])
+            actFun = BNN_lib.genReLU(prm=prior_alphas[i])
             pred = RunPredict(predict_features, prior_weights[i], actFun=actFun)
             prior_predictions.append(pred)
     

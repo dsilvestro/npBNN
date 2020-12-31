@@ -2,8 +2,8 @@ import pickle
 import sys
 import numpy as np
 import scipy.stats
-from  np_bnn.BNN_lib import *
-import np_bnn.BNN_files
+from .BNN_lib import *
+from . import BNN_files
 import random, numpy
 from numpy.random import MT19937
 from numpy.random import RandomState, SeedSequence
@@ -70,7 +70,7 @@ class npBNN():
                 # last layer
                 w_layers.append(np.random.normal(0, self._init_std, (self._size_output, self._n_nodes[-1])))
             else:
-                post_samples = np_bnn.BNN_files.load_obj(pickle_file)
+                post_samples = BNN_files.load_obj(pickle_file)
                 post_weights = [post_samples[i]['weights'] for i in range(len(post_samples))]
                 w_layers = post_weights[-1]
         else:
@@ -327,7 +327,7 @@ class postLogger():
                  continue_logfile=False,
                  log_all_weights=0):
         
-        wlog, logfile, w_file, wweight = np_bnn.BNN_files.init_output_files(bnn_obj, filename, sample_from_prior,
+        wlog, logfile, w_file, wweight = BNN_files.init_output_files(bnn_obj, filename, sample_from_prior,
                                                                             outpath=wdir, add_prms=add_prms,
                                                                             continue_logfile=continue_logfile,
                                                                             log_all_weights=log_all_weights)

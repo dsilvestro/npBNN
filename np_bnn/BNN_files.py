@@ -1,12 +1,11 @@
 import pickle
 import numpy as np
 import scipy.stats
-from np_bnn.BNN_lib import *
 import os
 import csv
 import glob
-
-from np_bnn import BNN_env
+from .BNN_lib import *
+from . import BNN_env
 
 # get data
 def get_data(f,l=None,testsize=0.1, batch_training=0,seed=1234, all_class_in_testset=1,
