@@ -344,7 +344,7 @@ def get_posterior_cat_prob(pred_features,
         predict_features = np.c_[np.ones(predict_features.shape[0]), predict_features]
     post_cat_probs = []
     for i in range(len(post_weights)):
-        actFun = BNN_lib.genReLU(prm=post_alphas[i])
+        actFun = genReLU(prm=post_alphas[i])
         pred = RunPredict(predict_features, post_weights[i], actFun=actFun)
         post_cat_probs.append(pred)
     post_softmax_probs = np.array(post_cat_probs)
