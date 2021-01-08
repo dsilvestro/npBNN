@@ -79,7 +79,7 @@ feature_importance = bn.feature_importance(dat['test_data'],
                                            true_labels=dat['test_labels'],
                                            fname_stem=dat['file_name'],
                                            feature_names=dat['feature_names'],
-                                           n_permutations=1,
+                                           n_permutations=100,
                                            feature_blocks = [[0,1,2,3,4,5,6,7],[8,9,10],[11,12,13,14,15,16,17,18,19,20]],
                                            unlink_features_within_block = True)
 
