@@ -440,6 +440,7 @@ def feature_importance(input_features, weights_pkl, true_labels,
                        feature_names=[],
                        verbose=False,
                        post_summary_mode=0,
+                       n_permutations=100,
                        feature_blocks=[],
                        unlink_features_within_block=False):
     features = input_features.copy()
@@ -468,21 +469,28 @@ def feature_importance(input_features, weights_pkl, true_labels,
     for block_id,feature_block in enumerate(selected_features):
         if verbose:
             print('Processing feature block %i',block_id+1)
-        post_softmax_probs,post_prob_predictions = get_posterior_cat_prob(input_features, weights_pkl,
-                                                                          feature_index_to_shuffle=feature_block,
-                                                                          post_summary_mode=post_summary_mode,
-                                                                          unlink_features_within_block=unlink_features_within_block)
-        accuracy = CalcAccuracy(post_prob_predictions, true_labels)
-        accuracies_wo_feature.append(accuracy)
+        n_accuracies = []
+        for rep in np.arange(n_permutations):
+            post_softmax_probs,post_prob_predictions = get_posterior_cat_prob(input_features, weights_pkl,
+                                                                              feature_index_to_shuffle=feature_block,
+                                                                              post_summary_mode=post_summary_mode,
+                                                                              unlink_features_within_block=unlink_features_within_block)
+            accuracy = CalcAccuracy(post_prob_predictions, true_labels)
+            n_accuracies.append(accuracy)
+        accuracies_wo_feature.append(n_accuracies)
     accuracies_wo_feature = np.array(accuracies_wo_feature)
     delta_accs = ref_accuracy-np.array(accuracies_wo_feature)    
-    # accuracies_wo_feature_means = np.mean(accuracies_wo_feature,axis=1)
+    delta_accs_means = np.mean(delta_accs,axis=1)
+    delta_accs_stds = np.std(delta_accs,axis=1)
+    accuracies_wo_feature_means = np.mean(accuracies_wo_feature,axis=1)
+    accuracies_wo_feature_stds = np.std(accuracies_wo_feature,axis=1)
     feature_importance_df = pd.DataFrame(np.array([np.arange(0,len(selected_features)),feature_block_names,
-                                                   delta_accs,accuracies_wo_feature]).T,
-                                         columns=['feature_block_index','feature_name','delta_acc',
-                                                  'acc_with_feature_randomized'])
+                                                   delta_accs_means,delta_accs_stds,
+                                                   accuracies_wo_feature_means,accuracies_wo_feature_stds]).T,
+                                         columns=['feature_block_index','feature_name','delta_acc_mean','delta_acc_std',
+                                                  'acc_with_feature_randomized_mean','acc_with_feature_randomized_std'])
     feature_importance_df.iloc[:,2:] = feature_importance_df.iloc[:,2:].astype(float)
-    feature_importance_df_sorted = feature_importance_df.sort_values('delta_acc',ascending=False)
+    feature_importance_df_sorted = feature_importance_df.sort_values('delta_acc_mean',ascending=False)
     # define outfile name
     predictions_outdir = os.path.dirname(weights_pkl)
     out_name = os.path.splitext(weights_pkl)[0]
@@ -491,8 +499,8 @@ def feature_importance(input_features, weights_pkl, true_labels,
         fname_stem = fname_stem + "_"
     feature_importance_df_filename = os.path.join(predictions_outdir, fname_stem + out_name + '_feature_importance.txt')
     # format the last two columns as numeric for applyign float printing formatting options
-    feature_importance_df_sorted['delta_acc'] = pd.to_numeric(feature_importance_df_sorted['delta_acc'])
-    feature_importance_df_sorted['acc_with_feature_randomized'] = pd.to_numeric(feature_importance_df_sorted['acc_with_feature_randomized'])
+    feature_importance_df_sorted['delta_acc_mean'] = pd.to_numeric(feature_importance_df_sorted['delta_acc_mean'])
+    feature_importance_df_sorted['acc_with_feature_randomized_mean'] = pd.to_numeric(feature_importance_df_sorted['acc_with_feature_randomized_mean'])
     feature_importance_df_sorted.to_csv(feature_importance_df_filename,sep='\t',index=False,header=True,float_format='%.6f')
     return feature_importance_df_sorted
 
