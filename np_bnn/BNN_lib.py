@@ -435,7 +435,10 @@ def predictBNN(predict_features, pickle_file=None, post_samples=None, test_label
     return {'post_prob_predictions': post_prob_predictions, 'mean_accuracy': mean_accuracy}
 
 
-def feature_importance(input_features, weights_pkl, true_labels,
+def feature_importance(input_features,
+                       weights_pkl=None,
+                       weights_posterior=None,
+                       true_labels=[],
                        fname_stem='',
                        feature_names=[],
                        verbose=False,
@@ -459,7 +462,7 @@ def feature_importance(input_features, weights_pkl, true_labels,
         selected_feature_names = [[i] for i in feature_names]
     feature_block_names = [','.join(np.array(i).astype(str)) for i in selected_feature_names] #join the feature names into one string for each block for output df
     # get accuracy with all features
-    post_softmax_probs,post_prob_predictions = get_posterior_cat_prob(input_features, weights_pkl,
+    post_softmax_probs,post_prob_predictions = get_posterior_cat_prob(input_features, weights_pkl, weights_posterior,
                                                                       post_summary_mode=post_summary_mode)
     ref_accuracy = CalcAccuracy(post_prob_predictions, true_labels)
     if verbose:
@@ -471,7 +474,7 @@ def feature_importance(input_features, weights_pkl, true_labels,
             print('Processing feature block %i',block_id+1)
         n_accuracies = []
         for rep in np.arange(n_permutations):
-            post_softmax_probs,post_prob_predictions = get_posterior_cat_prob(input_features, weights_pkl,
+            post_softmax_probs,post_prob_predictions = get_posterior_cat_prob(input_features, weights_pkl, weights_posterior,
                                                                               feature_index_to_shuffle=feature_block,
                                                                               post_summary_mode=post_summary_mode,
                                                                               unlink_features_within_block=unlink_features_within_block)
