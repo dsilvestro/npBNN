@@ -445,6 +445,7 @@ def feature_importance(input_features,
                        post_summary_mode=0,
                        n_permutations=100,
                        feature_blocks=[],
+                       predictions_outdir='',
                        unlink_features_within_block=False):
     features = input_features.copy()
     feature_indices = np.arange(features.shape[1])
@@ -495,12 +496,10 @@ def feature_importance(input_features,
     feature_importance_df.iloc[:,2:] = feature_importance_df.iloc[:,2:].astype(float)
     feature_importance_df_sorted = feature_importance_df.sort_values('delta_acc_mean',ascending=False)
     # define outfile name
-    predictions_outdir = os.path.dirname(weights_pkl)
-    out_name = os.path.splitext(weights_pkl)[0]
-    out_name = os.path.basename(out_name)
+    #predictions_outdir = os.path.dirname(weights_pkl)
     if fname_stem != "":
         fname_stem = fname_stem + "_"
-    feature_importance_df_filename = os.path.join(predictions_outdir, fname_stem + out_name + '_feature_importance.txt')
+    feature_importance_df_filename = os.path.join(predictions_outdir, fname_stem + '_feature_importance.txt')
     # format the last two columns as numeric for applyign float printing formatting options
     feature_importance_df_sorted['delta_acc_mean'] = pd.to_numeric(feature_importance_df_sorted['delta_acc_mean'])
     feature_importance_df_sorted['acc_with_feature_randomized_mean'] = pd.to_numeric(feature_importance_df_sorted['acc_with_feature_randomized_mean'])
