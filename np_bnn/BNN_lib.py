@@ -497,6 +497,8 @@ def feature_importance(input_features,
     feature_importance_df_sorted = feature_importance_df.sort_values('delta_acc_mean',ascending=False)
     # define outfile name
     #predictions_outdir = os.path.dirname(weights_pkl)
+    if not os.path.exists(predictions_outdir):
+        os.makedirs(predictions_outdir)
     if fname_stem != "":
         fname_stem = fname_stem + "_"
     feature_importance_df_filename = os.path.join(predictions_outdir, fname_stem + '_feature_importance.txt')
