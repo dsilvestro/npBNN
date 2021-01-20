@@ -6,3 +6,6 @@ from .BNN_files import *
 
 from . import BNN_lib
 from .BNN_lib import *
+
+from . import BNN_mcmc
+from .BNN_mcmc import *

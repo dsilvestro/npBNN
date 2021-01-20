@@ -3,6 +3,7 @@ import sys
 import numpy as np
 import scipy.stats
 from .BNN_lib import *
+from .BNN_mcmc import *
 from . import BNN_files
 import random, numpy
 from numpy.random import MT19937
