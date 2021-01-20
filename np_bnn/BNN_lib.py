@@ -448,11 +448,11 @@ def get_accuracy_threshold(probs, labels, threshold=0.75):
     cm = CalcConfusionMatrix(res_supported, labels_supported)
     return {'predictions': pred, 'accuracy': accuracy, 'retained_samples': dropped_frequency, 'confusion_matrix': cm}
 
-def sample_from_categorical(posterior_weights=None, pkl_file=None):
+def sample_from_categorical(posterior_weights=None, post_prob_file=None, verbose=False):
     if posterior_weights is not None:
         pass
-    elif pkl_file:
-        posterior_weights = np.load(pkl_file)
+    elif post_prob_file:
+        posterior_weights = np.load(post_prob_file)
     else:
         print("Input pickle file or posterior weights required.")
     n_post_samples = posterior_weights.shape[0]
@@ -462,7 +462,7 @@ def sample_from_categorical(posterior_weights=None, pkl_file=None):
     res = np.zeros((n_instances, n_post_samples))
     point_estimates = np.zeros((n_instances, n_classes))
     for instance_j in range(posterior_weights.shape[1]):
-        if instance_j % 1000 == 0:
+        if instance_j % 1000 == 0 and verbose is True:
             print(instance_j)
         post_sample = posterior_weights[:, instance_j, :]
         p = np.cumsum(post_sample, axis=1)
@@ -477,6 +477,6 @@ def sample_from_categorical(posterior_weights=None, pkl_file=None):
     
     class_counts = np.zeros((n_post_samples, n_classes))
     for i in range(res.shape[1]):
-        class_counts[i] = np.unique(res[:, i], return_counts=True)[1]
+        class_counts[i] = np.bincount(res[:, i].astype(int), minlength=n_classes)
     
     return {'predictions': point_estimates, 'class_counts': class_counts, 'post_predictions': res}
