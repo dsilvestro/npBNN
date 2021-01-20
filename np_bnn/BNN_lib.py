@@ -265,6 +265,10 @@ def get_posterior_cat_prob(pred_features,
         posterior_prob_classes = posterior_prob_classes/n_posterior_samples
     elif post_summary_mode == 1: # use mean of softmax across posterior samples
         posterior_prob_classes = np.mean(post_softmax_probs, axis=0)
+    elif post_summary_mode == 2: # resample classification based on softmax/categorical probabilities (posterior predictive)
+        res = sample_from_categorical(posterior_weights=post_softmax_probs)
+        posterior_prob_classes = res['predictions']
+    
     return(post_softmax_probs,posterior_prob_classes)
 
         # if summary_mode == 0: # use argmax for each posterior sample
@@ -444,3 +448,35 @@ def get_accuracy_threshold(probs, labels, threshold=0.75):
     cm = CalcConfusionMatrix(res_supported, labels_supported)
     return {'predictions': pred, 'accuracy': accuracy, 'retained_samples': dropped_frequency, 'confusion_matrix': cm}
 
+def sample_from_categorical(posterior_weights=None, pkl_file=None):
+    if posterior_weights is not None:
+        pass
+    elif pkl_file:
+        posterior_weights = np.load(pkl_file)
+    else:
+        print("Input pickle file or posterior weights required.")
+    n_post_samples = posterior_weights.shape[0]
+    n_instances = posterior_weights.shape[1]
+    n_classes = posterior_weights.shape[2]
+
+    res = np.zeros((n_instances, n_post_samples))
+    point_estimates = np.zeros((n_instances, n_classes))
+    for instance_j in range(posterior_weights.shape[1]):
+        if instance_j % 1000 == 0:
+            print(instance_j)
+        post_sample = posterior_weights[:, instance_j, :]
+        p = np.cumsum(post_sample, axis=1)
+        r = np.random.random(len(p))
+        q = p - r.reshape(len(r), 1)
+        q[q < 0] = 1  # arbitrarily large number
+        classification = np.argmin(q, axis=1)
+        res[instance_j, :] = classification
+        # mode (point estimate)
+        counts = np.bincount(classification, minlength=n_classes)
+        point_estimates[instance_j, :] = counts / np.sum(counts)
+    
+    class_counts = np.zeros((n_post_samples, n_classes))
+    for i in range(res.shape[1]):
+        class_counts[i] = np.unique(res[:, i], return_counts=True)[1]
+    
+    return {'predictions': point_estimates, 'class_counts': class_counts, 'post_predictions': res}
