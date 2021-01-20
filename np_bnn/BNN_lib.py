@@ -82,75 +82,6 @@ def RunHiddenLayer(z0, w01, actFun, layer_n):
     else:
         return z1
 
-def UpdateFixedNormal(i, d=1, n=1, Mb=100, mb= -100, rs=0):
-    if not rs:
-        rseed = random.randint(1000, 9999)
-        rs = RandomState(MT19937(SeedSequence(rseed)))
-    Ix = rs.randint(0, i.shape[0],n) # faster than np.random.choice
-    Iy = rs.randint(0, i.shape[1],n)
-    current_prm = i[Ix,Iy]
-    new_prm = rs.normal(0, d[Ix,Iy], n)
-    hastings = np.sum(scipy.stats.norm.logpdf(current_prm, 0, d[Ix,Iy]) - \
-               scipy.stats.norm.logpdf(new_prm, 0, d[Ix,Iy]))
-    z = np.zeros(i.shape) + i
-    z[Ix,Iy] = new_prm
-    z[z > Mb] = Mb- (z[z>Mb]-Mb)
-    z[z < mb] = mb- (z[z<mb]-mb)
-    return z, (Ix, Iy), hastings
-
-def UpdateNormal1D(i, d=0.01, n=1, Mb=100, mb= -100, rs=0):
-    if not rs:
-        rseed = random.randint(1000, 9999)
-        rs = RandomState(MT19937(SeedSequence(rseed)))
-    Ix = rs.randint(0, len(i),n) # faster than np.random.choice
-    z = np.zeros(i.shape) + i
-    z[Ix] = z[Ix] + rs.normal(0, d, n)
-    z[z > Mb] = Mb- (z[z>Mb]-Mb)
-    z[z < mb] = mb- (z[z<mb]-mb)
-    hastings = 0
-    return z, Ix, hastings
-
-def UpdateNormal(i, d=0.01, n=1, Mb=100, mb= -100, rs=0):
-    if not rs:
-        rseed = random.randint(1000, 9999)
-        rs = RandomState(MT19937(SeedSequence(rseed)))
-    Ix = rs.randint(0, i.shape[0],n) # faster than np.random.choice
-    Iy = rs.randint(0, i.shape[1],n)
-    z = np.zeros(i.shape) + i
-    z[Ix,Iy] = z[Ix,Iy] + rs.normal(0, d[Ix,Iy], n)
-    z[z > Mb] = Mb- (z[z>Mb]-Mb)
-    z[z < mb] = mb- (z[z<mb]-mb)
-    hastings = 0
-    return z, (Ix, Iy), hastings
-
-def UpdateNormalNormalized(i, d=0.01, n=1, Mb=100, mb= -100, rs=0):
-    if not rs:
-        rseed = random.randint(1000, 9999)
-        rs = RandomState(MT19937(SeedSequence(rseed)))
-    Ix = rs.randint(0, i.shape[0],n) # faster than np.random.choice
-    Iy = rs.randint(0, i.shape[1],n)
-    z = np.zeros(i.shape) + i
-    z[Ix,Iy] = z[Ix,Iy] + rs.normal(0, d[Ix,Iy], n)
-    z = z/np.sum(z)
-    hastings = 0
-    return z, (Ix, Iy), hastings
-
-
-
-def UpdateUniform(i, d=0.1, n=1, Mb=100, mb= -100):
-    Ix = np.random.randint(0, i.shape[0],n) # faster than np.random.choice
-    Iy = np.random.randint(0, i.shape[1],n)
-    z = np.zeros(i.shape) + i
-    z[Ix,Iy] = z[Ix,Iy] + np.random.uniform(-d[Ix,Iy], d[Ix,Iy], n)
-    z[z > Mb] = Mb- (z[z>Mb]-Mb)
-    z[z < mb] = mb- (z[z<mb]-mb)
-    hastings = 0
-    return z, (Ix, Iy), hastings
-
-
-
-def UpdateBinomial(ind,update_f,shape_out):
-    return np.abs(ind - np.random.binomial(1, np.random.random() * update_f, shape_out))
 
 def CalcAccuracy(y,lab):
     if len(y.shape) == 3: # if the posterior softmax array is used, return array of accuracies
@@ -184,31 +115,6 @@ def CalcLabelFreq(y):
     f[tmp[0]] = tmp[1]
     return f/len(prediction)
 
-def GibbsSampleNormStdGammaVector(x,a=2,b=0.1,mu=0):
-    Gamma_a = a + len(x)/2.
-    Gamma_b = b + np.sum((x-mu)**2)/2.
-    tau = np.random.gamma(Gamma_a, scale=1./Gamma_b)
-    return 1/np.sqrt(tau)
-
-
-def GibbsSampleNormStdGamma2D(x,a=1,b=0.1,mu=0):
-    Gamma_a = a + (x.shape[0])/2. #
-    Gamma_b = b + np.sum((x-mu)**2,axis=0)/2.
-    tau = np.random.gamma(Gamma_a, scale=1./Gamma_b)
-    return 1/np.sqrt(tau)
-
-def GibbsSampleNormStdGammaONE(x,a=1.5,b=0.1,mu=0):
-    Gamma_a = a + 1/2. # one observation for each value (1 Y for 1 s2)
-    Gamma_b = b + ((x-mu)**2)/2.
-    tau = np.random.gamma(Gamma_a, scale=1./Gamma_b)
-    return 1/np.sqrt(tau)
-
-def GibbsSampleGammaRateExp(sd,a,alpha_0=1.,beta_0=1.):
-    # prior is on precision tau
-    tau = 1./(sd**2) #np.array(tau_list)
-    conjugate_a = alpha_0 + len(tau)*a
-    conjugate_b = beta_0 + np.sum(tau)
-    return np.random.gamma(conjugate_a,scale=1./conjugate_b)
 
 def SaveObject(obj, filename):
     with open(filename, 'wb') as output:  # Overwrites any existing file.
@@ -496,8 +402,9 @@ def feature_importance(input_features,
     feature_importance_df.iloc[:,2:] = feature_importance_df.iloc[:,2:].astype(float)
     feature_importance_df_sorted = feature_importance_df.sort_values('delta_acc_mean',ascending=False)
     # define outfile name
-    #predictions_outdir = os.path.dirname(weights_pkl)
-    if not os.path.exists(predictions_outdir):
+    if predictions_outdir == "":
+        predictions_outdir = os.path.dirname(weights_pkl)
+    if not os.path.exists(predictions_outdir) and predictions_outdir != "":
         os.makedirs(predictions_outdir)
     if fname_stem != "":
         fname_stem = fname_stem + "_"
@@ -506,6 +413,7 @@ def feature_importance(input_features,
     feature_importance_df_sorted['delta_acc_mean'] = pd.to_numeric(feature_importance_df_sorted['delta_acc_mean'])
     feature_importance_df_sorted['acc_with_feature_randomized_mean'] = pd.to_numeric(feature_importance_df_sorted['acc_with_feature_randomized_mean'])
     feature_importance_df_sorted.to_csv(feature_importance_df_filename,sep='\t',index=False,header=True,float_format='%.6f')
+    print("Output saved in: %s" % feature_importance_df_filename)
     return feature_importance_df_sorted
 
 
@@ -536,16 +444,3 @@ def get_accuracy_threshold(probs, labels, threshold=0.75):
     cm = CalcConfusionMatrix(res_supported, labels_supported)
     return {'predictions': pred, 'accuracy': accuracy, 'retained_samples': dropped_frequency, 'confusion_matrix': cm}
 
-def run_mcmc(bnn, mcmc, logger):
-    while True:
-        mcmc.mh_step(bnn)
-        # print some stats (iteration number, likelihood, training accuracy, test accuracy
-        if mcmc._current_iteration % mcmc._print_f == 0 or mcmc._current_iteration == 1:
-            print(mcmc._current_iteration, np.round([mcmc._logLik, mcmc._accuracy, mcmc._test_accuracy],3))
-        # save to file
-        if mcmc._current_iteration % mcmc._sampling_f == 0:
-            logger.log_sample(bnn,mcmc)
-            logger.log_weights(bnn,mcmc)
-        # stop MCMC after running desired number of iterations
-        if mcmc._current_iteration == mcmc._n_iterations:
-            break
