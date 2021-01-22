@@ -1,11 +1,9 @@
-import pickle
-import numpy as np
-import scipy.stats
-import os
 import csv
 import glob
+import os
+import numpy as np
 from .BNN_lib import *
-from . import BNN_env
+
 
 # get data
 def get_data(f,l=None,testsize=0.1, batch_training=0,seed=1234, all_class_in_testset=1,

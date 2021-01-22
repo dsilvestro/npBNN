@@ -1,16 +1,13 @@
 import numpy as np
-import scipy.stats
 import scipy.special
-import pandas as pd
-np.set_printoptions(suppress= 1) # prints floats, no scientific notation
-np.set_printoptions(precision=3) # rounds all array elements to 3rd digit
-import pickle
+import scipy.stats
+
+np.set_printoptions(suppress=True, precision=3)
 small_number = 1e-10
-import random, sys
+import random
 from numpy.random import MT19937
 from numpy.random import RandomState, SeedSequence
-from . import BNN_files
-import os
+
 
 def UpdateFixedNormal(i, d=1, n=1, Mb=100, mb= -100, rs=0):
     if not rs:

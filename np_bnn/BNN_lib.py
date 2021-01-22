@@ -2,14 +2,14 @@ import numpy as np
 import scipy.stats
 import scipy.special
 import pandas as pd
-np.set_printoptions(suppress= 1) # prints floats, no scientific notation
-np.set_printoptions(precision=3) # rounds all array elements to 3rd digit
+np.set_printoptions(suppress=True, precision=3)
 import pickle
 small_number = 1e-10
 import random, sys
 from numpy.random import MT19937
 from numpy.random import RandomState, SeedSequence
-from . import BNN_files
+from .BNN_files import *
+from .BNN_lib import *
 import os
 try:
     import tensorflow as tf
@@ -242,7 +242,7 @@ def get_posterior_cat_prob(pred_features,
             predict_features[:,feature_index_to_shuffle] = np.random.permutation(predict_features[:,feature_index_to_shuffle])
     # load posterior weights
     if pickle_file is not None:
-        post_samples = BNN_files.load_obj(pickle_file)
+        post_samples = load_obj(pickle_file)
     post_weights = [post_samples[i]['weights'] for i in range(len(post_samples))]
     post_alphas = [post_samples[i]['alphas'] for i in range(len(post_samples))]
     if n_features < post_weights[0][0].shape[1]:
@@ -313,12 +313,12 @@ def predictBNN(predict_features, pickle_file=None, post_samples=None, test_label
     else:
         mean_accuracy = np.nan
     if pickle_file_prior:
-        prior_samples = BNN_files.load_obj(pickle_file_prior)
+        prior_samples = load_obj(pickle_file_prior)
         prior_weights = [prior_samples[i]['weights'] for i in range(len(prior_samples))]
         prior_alphas = [prior_samples[i]['alphas'] for i in range(len(prior_samples))]
         prior_predictions = []
         for i in range(len(prior_weights)):
-            actFun = BNN_lib.genReLU(prm=prior_alphas[i])
+            actFun = genReLU(prm=prior_alphas[i])
             pred = RunPredict(predict_features, prior_weights[i], actFun=actFun)
             prior_predictions.append(pred)
     
