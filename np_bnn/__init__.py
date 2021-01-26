@@ -1,3 +1,8 @@
+__version__ = '0.1.2'
+__citation__ = "Silvestro D, Andermann T. (2020). \
+Prior choice affects ability of Bayesian neural networks to identify unknowns. \
+arXiv:2005.04987. "
+
 from . import BNN_env
 from .BNN_env import *
 
