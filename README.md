@@ -1,6 +1,14 @@
 # npBNN - Bayesian Neural Networks
-The npBNN package is a Python implementation of Bayesian neural networks for classification, using the Numpy and Scipy libraries. The program is used in our [arXiv paper](https://arxiv.org/abs/2005.04987).
+The np_bnn library is a Python implementation of Bayesian neural networks for classification, using the Numpy and Scipy libraries. The program is used in our [arXiv paper](https://arxiv.org/abs/2005.04987).
 
-The example file [`npBNN.py`](https://github.com/dsilvestro/npBNN/blob/master/npBNN.py) shows how to set up a BNN model, train it, and use it to make predictions.
-The npBNN package implements Markov Chain Monte Carlo (MCMC) to estimated the model parmaeters. A parallelized version using Metropolis Coupled MCMC (or MC3) is also available: [`npBNNMC3.py`](https://github.com/dsilvestro/npBNN/blob/master/npBNNMC3.py).
+To install the np_bnn library you can use:
+
+```
+python -m pip install https://github.com/dsilvestro/npBNN/archive/0.1.2.tar.gz
+```
+Note that you may have to use `python3` depending on which version of Python is set as default in your operating system. 
+
+
+The example file [`bnn_runner.py`](https://github.com/dsilvestro/npBNN/blob/master/bnn_runner.py) shows how to set up a BNN model, train it, and use it to make predictions.
+The npBNN package implements Markov Chain Monte Carlo (MCMC) to estimate the model parameters. A parallelized version using Metropolis Coupled MCMC (or MC3) is also available: [`bnn_runner_MC3.py`](https://github.com/dsilvestro/npBNN/blob/master/bnn_runner_MC3.py).
 
