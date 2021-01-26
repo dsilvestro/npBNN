@@ -1,7 +1,5 @@
 import os
 import sys
-from distutils.sysconfig import get_python_lib
-
 import setuptools 
 
 CURRENT_PYTHON = sys.version_info[:2]
@@ -17,10 +15,11 @@ install it on Python {}.{}.
 """.format(*(REQUIRED_PYTHON + CURRENT_PYTHON)))
     sys.exit(1)
 
-
 with open("README.md", "r", encoding="utf-8") as fh:
     long_description = fh.read()
 
+with open("requirements.txt", "r", encoding="utf-8") as fh:
+    requirements_list = fh.read().splitlines()
 
 setuptools.setup(
     name="npBNN",
@@ -37,4 +36,5 @@ setuptools.setup(
         "Operating System :: OS Independent",
     ],
     python_requires='>=3.6',
+    install_requires=requirements_list
 )
