@@ -7,38 +7,55 @@ from .BNN_lib import *
 
 # get data
 def get_data(f,l=None,testsize=0.1, batch_training=0,seed=1234, all_class_in_testset=1,
-             instance_id=0, header=0,feature_indx=None,randomize_order=True):
+             instance_id=0, header=0,feature_indx=None,randomize_order=True,from_file=True):
     np.random.seed(seed)
     inst_id = []
-    fname = os.path.splitext(os.path.basename(f))[0]
-    try:
-        tot_x = np.load(f)
-    except(ValueError):
-        if not instance_id:
-            tot_x = np.loadtxt(f)
+    if from_file:
+        fname = os.path.splitext(os.path.basename(f))[0]
+        try:
+            tot_x = np.load(f)
+        except(ValueError):
+            if not instance_id:
+                tot_x = np.loadtxt(f)
+            else:
+                tmp = np.genfromtxt(f, skip_header=header, dtype=str)
+                tot_x = tmp[:,1:].astype(float)
+                inst_id = tmp[:,0].astype(str)
+            
+        if header:
+            feature_names = np.array(next(open(f)).split()[1:])
         else:
-            tmp = np.genfromtxt(f, skip_header=header, dtype=str)
-            tot_x = tmp[:,1:].astype(float)
-            inst_id = tmp[:,0].astype(str)
-        
-    if header:
-        feature_names = np.array(next(open(f)).split()[1:])
+            feature_names = np.array(["feature_%s" % i for i in range(tot_x.shape[1])])
     else:
-        feature_names = np.array(["feature_%s" % i for i in range(tot_x.shape[1])])
+        f = pd.DataFrame(f)
+        fname = 'bnn'
+        if not instance_id:
+            feature_names = np.array(f.columns)
+            tot_x = f.values
+        else:
+            feature_names = np.array(f.columns[1:])
+            tot_x = f.values[:,1:]
+            inst_id = f.values[:,0].astype(str)
 
     if feature_indx is not None:
         feature_indx = np.array(feature_indx)
         tot_x = tot_x[:,feature_indx]
         feature_names = feature_names[feature_indx]
 
-
-    if not l:
-        return {'data': tot_x, 'labels': [], 'label_dict': [],
-                'test_data': [], 'test_labels': [],
-                'id_data': inst_id, 'id_test_data': [],
-                'file_name': fname, 'feature_names': feature_names}
-
-    tot_labels = np.loadtxt(l,skiprows=header,dtype=str)
+    
+    try:
+        if not l.empty:
+            l = pd.DataFrame(l)
+            tot_labels = l.values.astype(str) # if l already is a dataframe
+    except:
+        if not l:
+            return {'data': np.array(tot_x).astype(float), 'labels': [], 'label_dict': [],
+                    'test_data': [], 'test_labels': [],
+                    'id_data': inst_id, 'id_test_data': [],
+                    'file_name': fname, 'feature_names': feature_names}
+        else:
+            tot_labels = np.loadtxt(l,skiprows=header,dtype=str)
+    
     if instance_id:
         tot_labels = tot_labels[:,1]
     tot_labels_numeric = turn_labels_to_numeric(tot_labels, l)
@@ -53,8 +70,8 @@ def get_data(f,l=None,testsize=0.1, batch_training=0,seed=1234, all_class_in_tes
         x = x[indx]
         labels = labels[indx]
 
-    return {'data': x, 'labels': labels, 'label_dict': np.unique(tot_labels),
-            'test_data': x_test, 'test_labels': labels_test,
+    return {'data': np.array(x).astype(float), 'labels': labels, 'label_dict': np.unique(tot_labels),
+            'test_data': np.array(x_test).astype(float), 'test_labels': labels_test,
             'id_data': inst_id_x, 'id_test_data': inst_id_x_test,
             'file_name': fname, 'feature_names': feature_names}
 
