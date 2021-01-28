@@ -4,8 +4,8 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import os
 
-from . import BNN_files
-from . import BNN_lib
+from .BNN_files import *
+from .BNN_lib import *
 
 def plotResults(bnn_predictions_file, bnn_lower_file, bnn_upper_file, nn_predictions_file, predictions_outdir, filename_str):
 
@@ -48,14 +48,14 @@ def plotResults(bnn_predictions_file, bnn_lower_file, bnn_upper_file, nn_predict
 def summarizeOutput(predictions_outdir, pred_features, w_file, nn_predictions_file, use_bias_node):
 	if not os.path.exists(predictions_outdir):
 		os.makedirs(predictions_outdir)
-	loaded_weights = np.array(BNN_files.load_obj(w_file))
+	loaded_weights = np.array(load_obj(w_file))
 	predict_features = np.load(pred_features)
 	if use_bias_node:
 		predict_features = np.c_[np.ones(predict_features.shape[0]), predict_features]
 	# run prediction with these weights
 	post_predictions = []
 	for weights in loaded_weights:
-		pred =  BNN_lib.RunPredict(predict_features, weights)
+		pred =  RunPredict(predict_features, weights)
 		post_predictions.append(pred)
 	post_predictions = np.array(post_predictions)
 	out_name = os.path.splitext(w_file)[0]
@@ -71,8 +71,8 @@ def summarizeOutput(predictions_outdir, pred_features, w_file, nn_predictions_fi
 	np.savetxt(out_file_mean_pr, np.mean(post_predictions, axis=0), fmt='%.3f')
 
 	# just for plotting reasons, calculate the hpd interval of the first category predictions
-	lower = [BNN_lib.calcHPD(point, 0.95)[0] for point in post_predictions[:, :, 0].T]
-	upper = [BNN_lib.calcHPD(point, 0.95)[1] for point in post_predictions[:, :, 0].T]
+	lower = [calcHPD(point, 0.95)[0] for point in post_predictions[:, :, 0].T]
+	upper = [calcHPD(point, 0.95)[1] for point in post_predictions[:, :, 0].T]
 	np.savetxt(out_file_upper_pr, upper, fmt='%.3f')
 	np.savetxt(out_file_lower_pr, lower, fmt='%.3f')
 
