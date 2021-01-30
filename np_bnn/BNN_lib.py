@@ -11,15 +11,6 @@ from numpy.random import RandomState, SeedSequence
 from .BNN_files import *
 from .BNN_lib import *
 import os
-try:
-    import tensorflow as tf
-    try:
-        os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"  # disable tf compilation warning
-        os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE" # avoid error about multiple copies of the OpenMP runtime 
-    except:
-        pass
-except:
-    print(' ')
 
 # Activation functions
 class genReLU():
@@ -422,6 +413,15 @@ def feature_importance(input_features,
 
 
 def get_weights_from_tensorflow_model(model_dir):
+    try:
+        import tensorflow as tf
+        try:
+            os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"  # disable tf compilation warning
+            os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"  # avoid error about multiple copies of the OpenMP runtime
+        except:
+            pass
+    except:
+        sys.exit("The required Tensorflow library not found.")
     model = tf.keras.models.load_model(model_dir)
     n_nodes_list = []
     init_weights = []
