@@ -23,8 +23,13 @@ dat = bn.get_data(f,l,
 
 # set up model architecture and priors
 n_nodes_list = [5, 5] # 2 hidden layers with 5 nodes each
-alphas = np.zeros(len(n_nodes_list))
-activation_function = bn.genReLU(prm=alphas, trainable=True) # To use default ReLU: BNN_lib.genReLU()
+# default ReLU:
+activation_function = bn.ActFun(fun="ReLU")
+# to use a leaky ReLU (set trainable=True for generalized ReLU):
+# alphas = np.zeros(len(n_nodes_list)) + 0.01
+# activation_function = bn.ActFun(fun="genReLU", prm=alphas, trainable=False)
+# alternatively for swish function:
+# activation_function = bn.ActFun(fun="swish")
 prior = 1 # 0) uniform, 1) normal, 2) Cauchy, 3) Laplace
 p_scale = 1 # std for Normal, scale parameter for Cauchy and Laplace, boundaries for Uniform
 use_class_weight = 0 # set to 1 to use class weights for unbalanced classes
@@ -49,7 +54,7 @@ mcmc = bn.MCMC(bnn_model,
                update_f=[0.05, 0.05, 0.07],
                update_ws=[0.075, 0.075, 0.075],
                temperature = 1,
-               n_iteration=5000,
+               n_iteration=10000,
                sampling_f=10,
                print_f=1000,
                n_post_samples=100,
@@ -67,11 +72,12 @@ bn.run_mcmc(bnn_model, mcmc, logger)
 # make predictions based on MCMC's estimated weights
 # test data
 post_pr_test = bn.predictBNN(dat['test_data'],
-                                  pickle_file=logger._w_file,
-                                  test_labels=dat['test_labels'],
-                                  instance_id=dat['id_test_data'],
-                                  fname=dat['file_name'],
-                                  post_summary_mode=0)
+                             pickle_file=logger._w_file,
+                             test_labels=dat['test_labels'],
+                             instance_id=dat['id_test_data'],
+                             fname=dat['file_name'],
+                             post_summary_mode=0,
+                             actFun=bnn_model._act_fun)
 
 # determine feature importance with test data
 feature_importance = bn.feature_importance(dat['test_data'],
@@ -81,7 +87,8 @@ feature_importance = bn.feature_importance(dat['test_data'],
                                            feature_names=dat['feature_names'],
                                            n_permutations=100,
                                            feature_blocks = [[0,1,2,3,4,5,6,7],[8,9,10],[11,12,13,14,15,16,17,18,19,20]],
-                                           unlink_features_within_block = True)
+                                           unlink_features_within_block = True,
+                                           actFun=bnn_model._act_fun)
 
 # train+test data
 dat_all = bn.get_data(f,l,
@@ -93,7 +100,8 @@ post_pr_all = bn.predictBNN(dat_all['data'],
                             pickle_file=logger._w_file,
                             test_labels=dat_all['labels'],
                             instance_id=dat_all['id_data'],
-                            fname="all_data")
+                            fname="all_data",
+                            actFun=bnn_model._act_fun)
 
 # predict new unlabeled data
 new_dat = bn.get_data(f="./example_files/unlabeled_data.txt",
@@ -103,27 +111,31 @@ new_dat = bn.get_data(f="./example_files/unlabeled_data.txt",
 post_pr_new = bn.predictBNN(new_dat['data'],
                             pickle_file=logger._w_file,
                             instance_id=new_dat['id_data'],
-                            fname=new_dat['file_name'])
-
+                            fname=new_dat['file_name'],
+                            actFun=bnn_model._act_fun)
 
 
 # ADDITIONAL OPTIONS
 # to restart a previous run you can provide the pickle file with the posterior parameters
 # when initializing the BNN environment
 pickle_file = logger._w_file
+
 bnn_model = bn.npBNN(dat,
                      n_nodes = n_nodes_list,
                      use_bias_node = 1,
                      prior_f = prior,
                      p_scale = p_scale,
                      pickle_file=pickle_file,
-                     seed=rseed)
+                     seed=rseed,
+                     actFun=activation_function)
 
 mcmc = bn.MCMC(bnn_model,
                update_f=[0.05, 0.04, 0.07],
                update_ws=[0.075, 0.075, 0.075],
                temperature = 1,
-               n_iteration=50000,
+               n_iteration=5000,
                sampling_f=100,
                print_f=1000,
                n_post_samples=100)
+
+# bn.run_mcmc(bnn_model, mcmc, logger)

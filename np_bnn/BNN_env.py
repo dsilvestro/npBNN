@@ -10,7 +10,7 @@ class npBNN():
     def __init__(self, dat, n_nodes=[50, 5],
                  use_bias_node=1, init_std=0.1, p_scale=1, prior_ind1=0.5,
                  prior_f=1, hyper_p=0, freq_indicator=0, w_bound=np.infty,
-                 pickle_file="", seed=1234, use_class_weights=0, actFun=genReLU(),init_weights=None):
+                 pickle_file="", seed=1234, use_class_weights=0, actFun=ActFun(),init_weights=None):
         # prior_f: 0) uniform 1) normal 2) cauchy
         # to change the boundaries of a uniform prior use -p_scale
         # hyper_p: 0) no hyperpriors, 1) 1 per layer, 2) 1 per input node, 3) 1 per node
@@ -76,11 +76,11 @@ class npBNN():
         self._w_layers = w_layers
 
         self._indicators = np.ones(self._w_layers[0].shape)
-        if pickle_file == "":
-            self._act_fun = actFun
-        else:
+
+        self._act_fun = actFun
+        if pickle_file != "" and actFun._trainable:
             post_alphas = [post_samples[i]['alphas'] for i in range(len(post_samples))]
-            self._act_fun = genReLU(prm=post_alphas[-1])
+            self._act_fun.reset_prm(post_alphas[-1])
 
 
         # init prior function
@@ -277,7 +277,8 @@ class MCMC():
             # print(logPost_prime, self._logPost)
             bnn_obj.reset_weights(w_layers_prime)
             bnn_obj.reset_indicators(indicators_prime)
-            bnn_obj._act_fun.reset_accepted_prm()
+            if bnn_obj._act_fun._trainable:
+                bnn_obj._act_fun.reset_accepted_prm()
             self._logPost = logPost_prime
             self._logLik = logLik_prime
             self._logPrior = logPrior_prime

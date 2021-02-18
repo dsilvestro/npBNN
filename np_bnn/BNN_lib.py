@@ -12,30 +12,48 @@ from .BNN_files import *
 from .BNN_lib import *
 import os
 
-# Activation functions
-class genReLU():
-    def __init__(self, prm=np.zeros(1), trainable=False):
+# if alpha < 1 and non trainable: leaky ReLU (https://ai.stanford.edu/~amaas/papers/relu_hybrid_icml2013_final.pdf)
+# if trainable: parameteric ReLU (https://arxiv.org/pdf/1502.01852.pdf)
+
+def relu_f(z, _):
+    z[z < 0] = 0
+    return z
+
+def leaky_relu_f(z, prm):
+    z[z < 0] = prm * z[z < 0]
+    return z
+
+def swish_f(z, _):
+    # https://arxiv.org/abs/1710.05941
+    z = z * (1 + np.exp(-z))**(-1)
+    return z
+
+class ActFun():
+    def __init__(self, fun='ReLU', prm=np.zeros(1), trainable=False):
         self._prm = prm
         self._acc_prm = prm
         self._trainable = trainable
-        # if alpha < 1 and non trainable: leaky ReLU (https://ai.stanford.edu/~amaas/papers/relu_hybrid_icml2013_final.pdf)
-        # if trainable: parameteric ReLU (https://arxiv.org/pdf/1502.01852.pdf)
-        if prm[0] == 0 and not trainable:
-            self._simpleReLU = True
-        else:
-            self._simpleReLU = False
+        self._function = fun
+        if fun == "ReLU":
+            self.activate = relu_f
+        if fun == "genReLU" or trainable is True:
+            self.activate = leaky_relu_f
+        if fun == "swish":
+            self.activate = swish_f
 
     def eval(self, z, layer_n):
-        if self._simpleReLU:
-            z[z < 0] = 0
+        if self._function == "genReLU":
+            return self.activate(z, self._prm[layer_n])
         else:
-            z[z < 0] = self._prm[layer_n] * z[z < 0]
-        return z
+            return self.activate(z, 0)
+
+
     def reset_prm(self, prm):
         self._prm = prm
 
     def reset_accepted_prm(self):
         self._acc_prm = self._prm + 0
+
 
 
 # likelihood function (Categorical)
@@ -54,7 +72,7 @@ def calc_likelihood(prediction, labels, sample_id, class_weight=[], lik_temp=1):
 
 
 def MatrixMultiplication(x1,x2):
-    z1 = np.einsum('nj,ij->ni', x1, x2, optimize=False)
+    z1 = np.einsum('nj,ij->ni', x1, x2)
     # same as:
     # for i in range(n_samples):
     # 	print(np.einsum('j,ij->i', x[i], w_in_l1))
@@ -217,7 +235,8 @@ def get_posterior_cat_prob(pred_features,
                            post_samples=None,
                            feature_index_to_shuffle=None,
                            post_summary_mode=0, # mode 0 is argmax, mode 1 is mean softmax
-                           unlink_features_within_block=False):
+                           unlink_features_within_block=False,
+                           actFun=None):
     if len(pred_features) ==0:
         print("Data not found.")
         return 0
@@ -241,8 +260,9 @@ def get_posterior_cat_prob(pred_features,
         predict_features = np.c_[np.ones(predict_features.shape[0]), predict_features]
     post_cat_probs = []
     for i in range(len(post_weights)):
-        actFun = genReLU(prm=post_alphas[i])
-        pred = RunPredict(predict_features, post_weights[i], actFun=actFun)
+        actFun_i = actFun
+        actFun_i.reset_prm(post_alphas[i])
+        pred = RunPredict(predict_features, post_weights[i], actFun=actFun_i)
         post_cat_probs.append(pred)
     post_softmax_probs = np.array(post_cat_probs)
     if post_summary_mode == 0: # use argmax for each posterior sample
@@ -267,14 +287,24 @@ def get_posterior_cat_prob(pred_features,
 
 
 
-def predictBNN(predict_features, pickle_file=None, post_samples=None, test_labels=[], instance_id=[],
-               pickle_file_prior=0, threshold=0.95, bf=150, fname="",post_summary_mode=0,
-               wd=""):
+def predictBNN(predict_features,
+               pickle_file=None,
+               post_samples=None,
+               test_labels=[],
+               instance_id=[],
+               pickle_file_prior=0,
+               threshold=0.95,
+               bf=150,
+               fname="",
+               post_summary_mode=0,
+               wd="",
+               actFun=ActFun()):
 
     post_softmax_probs,post_prob_predictions = get_posterior_cat_prob(predict_features,
                                                                       pickle_file,
                                                                       post_samples,
-                                                                      post_summary_mode=post_summary_mode)
+                                                                      post_summary_mode=post_summary_mode,
+                                                                      actFun=actFun)
     
     if pickle_file:
         predictions_outdir = os.path.dirname(pickle_file)
@@ -309,8 +339,9 @@ def predictBNN(predict_features, pickle_file=None, post_samples=None, test_label
         prior_alphas = [prior_samples[i]['alphas'] for i in range(len(prior_samples))]
         prior_predictions = []
         for i in range(len(prior_weights)):
-            actFun = genReLU(prm=prior_alphas[i])
-            pred = RunPredict(predict_features, prior_weights[i], actFun=actFun)
+            actFun_i = actFun
+            actFun_i.reset_prm(prior_alphas[i])
+            pred = RunPredict(predict_features, prior_weights[i], actFun=actFun_i)
             prior_predictions.append(pred)
     
         prior_predictions = np.array(prior_predictions)
@@ -347,7 +378,8 @@ def feature_importance(input_features,
                        n_permutations=100,
                        feature_blocks=[],
                        predictions_outdir='',
-                       unlink_features_within_block=False):
+                       unlink_features_within_block=False,
+                       actFun=ActFun()):
     features = input_features.copy()
     feature_indices = np.arange(features.shape[1])
     # if no names are provided, name them by index
@@ -365,7 +397,8 @@ def feature_importance(input_features,
     feature_block_names = [','.join(np.array(i).astype(str)) for i in selected_feature_names] #join the feature names into one string for each block for output df
     # get accuracy with all features
     post_softmax_probs,post_prob_predictions = get_posterior_cat_prob(input_features, weights_pkl, weights_posterior,
-                                                                      post_summary_mode=post_summary_mode)
+                                                                      post_summary_mode=post_summary_mode,
+                                                                      actFun=actFun)
     ref_accuracy = CalcAccuracy(post_prob_predictions, true_labels)
     if verbose:
         print("Reference accuracy (mean):", np.mean(ref_accuracy))
@@ -375,11 +408,12 @@ def feature_importance(input_features,
         if verbose:
             print('Processing feature block %i',block_id+1)
         n_accuracies = []
-        for rep in np.arange(n_permutations):
+        for _ in np.arange(n_permutations):
             post_softmax_probs,post_prob_predictions = get_posterior_cat_prob(input_features, weights_pkl, weights_posterior,
                                                                               feature_index_to_shuffle=feature_block,
                                                                               post_summary_mode=post_summary_mode,
-                                                                              unlink_features_within_block=unlink_features_within_block)
+                                                                              unlink_features_within_block=unlink_features_within_block,
+                                                                              actFun=actFun)
             accuracy = CalcAccuracy(post_prob_predictions, true_labels)
             n_accuracies.append(accuracy)
         accuracies_wo_feature.append(n_accuracies)
