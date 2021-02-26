@@ -1,0 +1,13 @@
+README.md
+setup.py
+npBNN.egg-info/PKG-INFO
+npBNN.egg-info/SOURCES.txt
+npBNN.egg-info/dependency_links.txt
+npBNN.egg-info/requires.txt
+npBNN.egg-info/top_level.txt
+np_bnn/BNN_env.py
+np_bnn/BNN_files.py
+np_bnn/BNN_lib.py
+np_bnn/BNN_mcmc.py
+np_bnn/BNN_plot.py
+np_bnn/__init__.py

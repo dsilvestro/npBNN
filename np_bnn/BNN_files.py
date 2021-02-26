@@ -97,13 +97,11 @@ def init_output_files(bnn_obj, filename="BNN", sample_from_prior=0, outpath="",a
                                             bnn_obj._n_nodes)), bnn_obj._p_scale, bnn_obj._w_bound, ind)
 
     logfile_name = os.path.join(outpath, outname + ".log")
-    if not log_all_weights:
-        w_file_name = os.path.join(outpath, outname + ".pkl")
-        wweights = None
-    else:
+    if log_all_weights:
         w_file_name = os.path.join(outpath, outname + "_W.log")
-        w_file_name = open(w_file_name, "w")
         head_w = ["it"]
+    else:
+        w_file_name = None
 
     head = ["it", "posterior", "likelihood", "prior", "accuracy", "test_accuracy"]
     for i in range(bnn_obj._size_output):
@@ -130,18 +128,17 @@ def init_output_files(bnn_obj, filename="BNN", sample_from_prior=0, outpath="",a
     head.append("mcmc_id")
     
     if not continue_logfile:
-        logfile = open(logfile_name, "w")
-        wlog = csv.writer(logfile, delimiter='\t')
+        logfile_IO = open(logfile_name, "w")
+        wlog = csv.writer(logfile_IO, delimiter='\t')
         wlog.writerow(head)
-    else:
-        logfile = open(logfile_name, "a")
-        wlog = csv.writer(logfile, delimiter='\t')
 
     if log_all_weights:
-        wweights = csv.writer(w_file_name, delimiter='\t')
+        w_file_IO = open(w_file_name, "w")
+        wweights = csv.writer(w_file_IO, delimiter='\t')
         wweights.writerow(head_w)
 
-    return wlog, logfile, w_file_name, wweights
+    pkl_file = os.path.join(outpath, outname + ".pkl")
+    return logfile_name, w_file_name, pkl_file
 
 
 def randomize_data(tot_x, tot_labels, testsize=0.1, all_class_in_testset=1, inst_id=[], randomize=True):

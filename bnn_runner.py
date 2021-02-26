@@ -72,23 +72,24 @@ bn.run_mcmc(bnn_model, mcmc, logger)
 # make predictions based on MCMC's estimated weights
 # test data
 post_pr_test = bn.predictBNN(dat['test_data'],
-                             pickle_file=logger._w_file,
+                             pickle_file=logger._pklfile,
                              test_labels=dat['test_labels'],
                              instance_id=dat['id_test_data'],
                              fname=dat['file_name'],
-                             post_summary_mode=0,
-                             actFun=bnn_model._act_fun)
+                             post_summary_mode=0)
+
+
 
 # determine feature importance with test data
 feature_importance = bn.feature_importance(dat['test_data'],
-                                           weights_pkl=logger._w_file,
+                                           weights_pkl=logger._pklfile,
                                            true_labels=dat['test_labels'],
                                            fname_stem=dat['file_name'],
                                            feature_names=dat['feature_names'],
                                            n_permutations=100,
                                            feature_blocks = [[0,1,2,3,4,5,6,7],[8,9,10],[11,12,13,14,15,16,17,18,19,20]],
-                                           unlink_features_within_block = True,
-                                           actFun=bnn_model._act_fun)
+                                           unlink_features_within_block = True)
+
 
 # train+test data
 dat_all = bn.get_data(f,l,
@@ -97,11 +98,10 @@ dat_all = bn.get_data(f,l,
                       instance_id=1) # input data includes names of instances
 
 post_pr_all = bn.predictBNN(dat_all['data'],
-                            pickle_file=logger._w_file,
+                            pickle_file=logger._pklfile,
                             test_labels=dat_all['labels'],
                             instance_id=dat_all['id_data'],
-                            fname="all_data",
-                            actFun=bnn_model._act_fun)
+                            fname="all_data")
 
 # predict new unlabeled data
 new_dat = bn.get_data(f="./example_files/unlabeled_data.txt",
@@ -109,16 +109,15 @@ new_dat = bn.get_data(f="./example_files/unlabeled_data.txt",
                       instance_id=1) # input data includes names of instances
 
 post_pr_new = bn.predictBNN(new_dat['data'],
-                            pickle_file=logger._w_file,
+                            pickle_file=logger._pklfile,
                             instance_id=new_dat['id_data'],
-                            fname=new_dat['file_name'],
-                            actFun=bnn_model._act_fun)
+                            fname=new_dat['file_name'])
 
 
 # ADDITIONAL OPTIONS
 # to restart a previous run you can provide the pickle file with the posterior parameters
 # when initializing the BNN environment
-pickle_file = logger._w_file
+pickle_file = logger._pklfile
 
 bnn_model = bn.npBNN(dat,
                      n_nodes = n_nodes_list,
@@ -139,3 +138,4 @@ mcmc = bn.MCMC(bnn_model,
                n_post_samples=100)
 
 # bn.run_mcmc(bnn_model, mcmc, logger)
+

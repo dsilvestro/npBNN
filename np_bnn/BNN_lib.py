@@ -252,7 +252,9 @@ def get_posterior_cat_prob(pred_features,
             predict_features[:,feature_index_to_shuffle] = np.random.permutation(predict_features[:,feature_index_to_shuffle])
     # load posterior weights
     if pickle_file is not None:
-        post_samples = load_obj(pickle_file)
+        bnn_obj,mcmc_obj,logger_obj = load_obj(pickle_file)
+        post_samples = logger_obj._post_weight_samples
+        actFun = bnn_obj._act_fun
     post_weights = [post_samples[i]['weights'] for i in range(len(post_samples))]
     post_alphas = [post_samples[i]['alphas'] for i in range(len(post_samples))]
     if n_features < post_weights[0][0].shape[1]:

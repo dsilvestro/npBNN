@@ -67,7 +67,8 @@ class npBNN():
                 # last layer
                 w_layers.append(np.random.normal(0, self._init_std, (self._size_output, self._n_nodes[-1])))
             else:
-                post_samples = load_obj(pickle_file)
+                bnn_obj,mcmc_obj,logger_obj = load_obj(pickle_file)
+                post_samples = logger_obj._post_weight_samples
                 post_weights = [post_samples[i]['weights'] for i in range(len(post_samples))]
                 w_layers = post_weights[-1]
         else:
@@ -312,8 +313,8 @@ class MCMC():
         self._update_n = n
     
     def reset_temperature(self,temp):
-        self._temperature = temp
-    
+        self._temperature = temp    
+
 
 class postLogger():
     def __init__(self,
@@ -325,23 +326,26 @@ class postLogger():
                  continue_logfile=False,
                  log_all_weights=0):
         
-        wlog, logfile, w_file, wweight = init_output_files(bnn_obj, filename, sample_from_prior,
+        logfile, w_file, pklfile = init_output_files(bnn_obj, filename, sample_from_prior,
                                                                             outpath=wdir, add_prms=add_prms,
                                                                             continue_logfile=continue_logfile,
                                                                             log_all_weights=log_all_weights)
-        self._wlog = wlog
+
         self._logfile = logfile
         self._w_file = w_file
-        self._wweight = wweight
-        self.log_all_weights = log_all_weights
-        self._counter = 0
-        self._list_post_weights = list()
+        self._pklfile = pklfile
+        self._log_all_weights = log_all_weights
+        self._post_weight_samples = []
 
-    def reset_counter(self):
-        self._counter = 0
+    def update_post_weight_samples(self,row):
+        self._post_weight_samples += [row]
 
-    def update_counter(self):
-        self._counter += 1
+    def replace_post_weight_samples(self,post_weight_samples):
+        self._post_weight_samples = post_weight_samples
+
+    def control_weight_sample_length(self,maxlength):
+        if len(self._post_weight_samples)>maxlength:
+            self._post_weight_samples = self._post_weight_samples[-maxlength:]
 
     def log_sample(self, bnn_obj, mcmc_obj, add_prms=None):
         row = [mcmc_obj._current_iteration, mcmc_obj._logPost, mcmc_obj._logLik, mcmc_obj._logPrior,
@@ -361,12 +365,24 @@ class postLogger():
             row = row + list(bnn_obj._act_fun._acc_prm)
         row.append(mcmc_obj._accepted_states / mcmc_obj._current_iteration)
         row.append(mcmc_obj._mcmc_id)
-        self._wlog.writerow(row)
-        self._logfile.flush()
+        logfile_IO = open(self._logfile, "a")
+        wlog = csv.writer(logfile_IO, delimiter='\t')
+        wlog.writerow(row)
+        logfile_IO.flush()
 
     def log_weights(self, bnn_obj, mcmc_obj, add_prms=None):
         # print(mcmc_obj._current_iteration, self._counter, len(self._list_post_weights))
-        if not self.log_all_weights:
+        if self._log_all_weights:
+            row = [mcmc_obj._current_iteration]
+            tmp = bnn_obj._w_layers[0] * bnn_obj._indicators[0]
+            row = row + [j for j in list(tmp.flatten())]
+            for i in range(1, bnn_obj._n_layers):
+                row = row + [j for j in list(bnn_obj._w_layers[i].flatten())]
+            w_file_IO = open(self._w_file, "a")
+            wweights = csv.writer(w_file_IO, delimiter='\t')
+            wweights.writerow(row)
+            w_file_IO.flush()
+        else:
             if bnn_obj._freq_indicator:
                 tmp = list()
                 tmp.append(bnn_obj._w_layers[0] * bnn_obj._indicators)
@@ -377,25 +393,11 @@ class postLogger():
             post_prm = {'weights': tmp}
             # a ReLU prms
             post_prm['alphas'] = list(bnn_obj._act_fun._acc_prm)
-
+            post_prm['mcmc_it'] = mcmc_obj._current_iteration
             if add_prms:
                 post_prm['additional_prm'] = list(add_prms)
 
-            # print(mcmc_obj._current_iteration, self._counter, len(self._list_post_weights))
-            if len(self._list_post_weights) < mcmc_obj._n_post_samples:
-                self._list_post_weights.append(post_prm)
-            else:
-                self._list_post_weights[self._counter] = post_prm
-            self.update_counter()
-            if self._counter == mcmc_obj._n_post_samples:
-                self.reset_counter()
-            SaveObject(self._list_post_weights, self._w_file)
-        else:
-            row = [mcmc_obj._current_iteration]
-            tmp = bnn_obj._w_layers[0] * bnn_obj._indicators[0]
-            row = row + [j for j in list(tmp.flatten())]
-            for i in range(1, bnn_obj._n_layers):
-                row = row + [j for j in list(bnn_obj._w_layers[i].flatten())]
-            self._wweight.writerow(row)
-            self._w_file.flush()
+            self.update_post_weight_samples(post_prm)
+            self.control_weight_sample_length(mcmc_obj._n_post_samples)
 
+        SaveObject([bnn_obj,mcmc_obj,self],self._pklfile)
