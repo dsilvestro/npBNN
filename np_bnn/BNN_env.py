@@ -10,7 +10,8 @@ class npBNN():
     def __init__(self, dat, n_nodes=[50, 5],
                  use_bias_node=1, init_std=0.1, p_scale=1, prior_ind1=0.5,
                  prior_f=1, hyper_p=0, freq_indicator=0, w_bound=np.infty,
-                 pickle_file="", seed=1234, use_class_weights=0, actFun=ActFun(),init_weights=None):
+                 pickle_file="", seed=1234, use_class_weights=0, actFun=ActFun(),init_weights=None,
+                 estimation_mode="classification"):
         # prior_f: 0) uniform 1) normal 2) cauchy
         # to change the boundaries of a uniform prior use -p_scale
         # hyper_p: 0) no hyperpriors, 1) 1 per layer, 2) 1 per input node, 3) 1 per node
@@ -19,13 +20,26 @@ class npBNN():
         self._seed = seed
         np.random.seed(self._seed)
         self._data = data
-        self._labels = labels.astype(int)
+        if estimation_mode == "classification":
+            self._labels = labels.astype(int)
+        else:
+            self._labels = labels
         self._test_data = test_data
         if len(test_labels) > 0:
-            self._test_labels = test_labels.astype(int)
+            if estimation_mode == "classification":
+                self._test_labels = test_labels.astype(int)
+            else:
+                self._test_labels = test_labels
         else:
             self._test_labels = []
-        self._size_output = len(np.unique(self._labels))
+        if estimation_mode == "classification":
+            self._size_output = len(np.unique(self._labels))
+            self._n_output_prm = self._size_output
+            self._output_act_fun = SoftMax
+        elif estimation_mode == "regression":
+            self._size_output = self._labels.shape[1] * 2 # mus, sigs
+            self._n_output_prm = self._labels.shape[1]
+            self._output_act_fun = RegressTransform
         self._init_std = init_std
         self._n_layers = len(n_nodes) + 1
         self._n_nodes = n_nodes
@@ -39,7 +53,7 @@ class npBNN():
 
         self._n_samples = self._data.shape[0]
         self._n_features = self._data.shape[1]
-        self._sample_id = np.arange(self._n_samples)
+        # self._sample_id = np.arange(self._n_samples)
         self._w_bound = w_bound
         self._freq_indicator = freq_indicator
         self._hyper_p = hyper_p
@@ -47,6 +61,7 @@ class npBNN():
         self._prior = prior_f
         self._p_scale = p_scale
         self._prior_ind1 = prior_ind1
+        self._estimation_mode = estimation_mode
 
         if use_class_weights:
             class_counts = np.unique(self._labels, return_counts=True)[1]
@@ -195,22 +210,38 @@ class MCMC():
         self._sampling_f = sampling_f
         self._print_f = print_f
         self._current_iteration = 0
-        self._y = RunPredict(bnn_obj._data, bnn_obj._w_layers, bnn_obj._act_fun)
+        self._y = RunPredict(bnn_obj._data, bnn_obj._w_layers, bnn_obj._act_fun, bnn_obj._output_act_fun)
+
+        if bnn_obj._estimation_mode == "classification":
+            self._likelihood_f = calc_likelihood
+        else:
+            self._likelihood_f = calc_likelihood_regression
         if sample_from_prior:
             self._logLik = 0
         else:
-            self._logLik = calc_likelihood(self._y,
-                                           bnn_obj._labels,
-                                           bnn_obj._sample_id,
-                                           bnn_obj._class_w,
-                                           likelihood_tempering)
+            self._logLik = self._likelihood_f(self._y,
+                                              bnn_obj._labels,
+                                              bnn_obj._sample_id,
+                                              bnn_obj._class_w,
+                                              likelihood_tempering)
         self._logPrior = bnn_obj.calc_prior() + init_additional_prob
         self._logPost = self._logLik + self._logPrior
-        self._accuracy = CalcAccuracy(self._y, bnn_obj._labels)
-        self._label_acc = CalcLabelAccuracy(self._y, bnn_obj._labels)
+        if bnn_obj._estimation_mode == "classification":
+            self._accuracy_f = CalcAccuracy
+            self._accuracy_lab_f = CalcLabelAccuracy
+        else:
+            self._accuracy_f = CalcAccuracyRegression
+            self._accuracy_lab_f = CalcLabelAccuracyRegression
+
+        self._accuracy = self._accuracy_f(self._y, bnn_obj._labels)
+        self._label_acc = self._accuracy_lab_f(self._y, bnn_obj._labels)
         if len(bnn_obj._test_data) > 0:
-            self._y_test = RunPredictInd(bnn_obj._test_data, bnn_obj._w_layers, bnn_obj._indicators,bnn_obj._act_fun)
-            self._test_accuracy = CalcAccuracy(self._y_test, bnn_obj._test_labels)
+            self._y_test = RunPredictInd(bnn_obj._test_data, bnn_obj._w_layers, bnn_obj._indicators,
+                                         bnn_obj._act_fun, bnn_obj._output_act_fun)
+            if bnn_obj._estimation_mode == "classification":
+                self._test_accuracy = self._accuracy_f(self._y_test, bnn_obj._test_labels)
+            else:
+                self._test_accuracy = np.sum((self._y_test - bnn_obj._test_labels) ** 2)
         else:
             self._y_test = []
             self._test_accuracy = 0
@@ -260,18 +291,18 @@ class MCMC():
                 tmp = RunHiddenLayer(tmp, w_layers_prime_temp,bnn_obj._act_fun, i)
             else:
                 tmp = RunHiddenLayer(tmp, w_layers_prime_temp, False, i)
-        y_prime = SoftMax(tmp)
+        y_prime = bnn_obj._output_act_fun(tmp)
 
         logPrior_prime = bnn_obj.calc_prior(w=w_layers_prime, ind=indicators_prime) + additional_prob
         if self._sample_from_prior:
             logLik_prime = 0
         else:
             # TODO: expose self._lik_temp as parameter that can be estimated by MCMC
-            logLik_prime = calc_likelihood(y_prime,
-                                           bnn_obj._labels,
-                                           bnn_obj._sample_id,
-                                           bnn_obj._class_w,
-                                           self._lik_temp)
+            logLik_prime = self._likelihood_f(y_prime,
+                                              bnn_obj._labels,
+                                              bnn_obj._sample_id,
+                                              bnn_obj._class_w,
+                                              self._lik_temp)
         logPost_prime = logLik_prime + logPrior_prime
         rrr = np.log(self._rs.random())
         if (logPost_prime - self._logPost) * self._temperature + hastings >= rrr:
@@ -284,13 +315,14 @@ class MCMC():
             self._logLik = logLik_prime
             self._logPrior = logPrior_prime
             self._y = y_prime
-            self._accuracy = CalcAccuracy(self._y, bnn_obj._labels)
-            self._label_acc = CalcLabelAccuracy(self._y, bnn_obj._labels)
+            self._accuracy = self._accuracy_f(self._y, bnn_obj._labels)
+            self._label_acc = self._accuracy_lab_f(self._y, bnn_obj._labels)
             self._label_freq = CalcLabelFreq(self._y)
             if len(bnn_obj._test_data) > 0:
                 self._y_test = RunPredictInd(bnn_obj._test_data, bnn_obj._w_layers,
-                                             bnn_obj._indicators, bnn_obj._act_fun)
-                self._test_accuracy = CalcAccuracy(self._y_test, bnn_obj._test_labels)
+                                             bnn_obj._indicators, bnn_obj._act_fun,
+                                             bnn_obj._output_act_fun)
+                self._test_accuracy = self._accuracy_f(self._y_test, bnn_obj._test_labels)
             else:
                 self._y_test = []
                 self._test_accuracy = 0
