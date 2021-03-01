@@ -73,7 +73,7 @@ def calc_likelihood_regression(prediction, # 2D array: inst x (mus + sigs)
                                true_values, # 2D array: val[inst x n_param
                                _, __,
                                lik_temp=1):
-    ind = int(prediction.shape[1] / 2)
+    ind = true_values.shape[1] #int(prediction.shape[1] / 2)
     return lik_temp * np.sum(scipy.stats.norm.logpdf(true_values, prediction[:,:ind], prediction[:,ind:]))
 
 def MatrixMultiplication(x1,x2):
@@ -103,7 +103,7 @@ def RunHiddenLayer(z0, w01, actFun, layer_n):
         return z1
 
 def CalcAccuracyRegression(y,lab):
-    acc = np.mean( (y-lab)**2 )
+    acc = np.mean( (y[:,0:lab.shape[1]]-lab)**2 )
     return acc
 
 def CalcLabelAccuracyRegression(_, __):

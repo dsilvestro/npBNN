@@ -19,10 +19,14 @@ dat = bn.get_data(f,l,
 
 # make up new lab
 dat['labels'] = np.max(dat['data'], axis=1) / (np.max(dat['data']) - np.min(dat['data']))
-u = dat['labels'] + np.zeros((1, len(dat['labels'])))
+u = np.zeros((2, len(dat['labels'])))
+u[0,:] = dat['labels'] + 0
+u[1,:] = dat['labels'] + 1
 dat['labels'] = u.T
 dat['test_labels'] = np.max(dat['test_data'], axis=1) / (np.max(dat['test_data']) - np.min(dat['test_data']))
-u = dat['test_labels'] + np.zeros((1, len(dat['test_labels'])))
+u = np.zeros((2, len(dat['test_labels'])))
+u[0,:] = dat['test_labels'] + 0
+u[1,:] = dat['test_labels'] + 1
 dat['test_labels'] = u.T
 
 # set up the BNN model
@@ -58,7 +62,8 @@ bn.run_mcmc(bnn_model, mcmc, logger)
 import seaborn as sns
 import matplotlib.pyplot as plt
 fig = plt.figure(figsize=(5, 5))
-sns.scatterplot(x=dat['labels'].flatten(),y=mcmc._y[:,0])
+sns.regplot(x=dat['labels'][:,0].flatten(),y=mcmc._y[:,0])
+sns.regplot(x=dat['labels'][:,1].flatten(),y=mcmc._y[:,1])
 fig.show()
 
 

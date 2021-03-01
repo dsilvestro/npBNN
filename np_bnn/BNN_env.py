@@ -238,10 +238,7 @@ class MCMC():
         if len(bnn_obj._test_data) > 0:
             self._y_test = RunPredictInd(bnn_obj._test_data, bnn_obj._w_layers, bnn_obj._indicators,
                                          bnn_obj._act_fun, bnn_obj._output_act_fun)
-            if bnn_obj._estimation_mode == "classification":
-                self._test_accuracy = self._accuracy_f(self._y_test, bnn_obj._test_labels)
-            else:
-                self._test_accuracy = np.sum((self._y_test - bnn_obj._test_labels) ** 2)
+            self._test_accuracy = self._accuracy_f(self._y_test, bnn_obj._test_labels)
         else:
             self._y_test = []
             self._test_accuracy = 0
