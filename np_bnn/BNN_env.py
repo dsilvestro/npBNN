@@ -365,6 +365,7 @@ class postLogger():
         self._pklfile = pklfile
         self._log_all_weights = log_all_weights
         self._post_weight_samples = []
+        self._estimation_mode = bnn_obj._estimation_mode
 
     def update_post_weight_samples(self,row):
         self._post_weight_samples += [row]
@@ -378,7 +379,8 @@ class postLogger():
 
     def log_sample(self, bnn_obj, mcmc_obj, add_prms=None):
         row = [mcmc_obj._current_iteration, mcmc_obj._logPost, mcmc_obj._logLik, mcmc_obj._logPrior,
-               mcmc_obj._accuracy, mcmc_obj._test_accuracy] + list(mcmc_obj._label_acc)#list(mcmc_obj._label_freq)
+               mcmc_obj._accuracy, mcmc_obj._test_accuracy] + list(mcmc_obj._label_acc)
+        #list(mcmc_obj._label_freq)
         for i in range(bnn_obj._n_layers):
             row = row + [np.mean(bnn_obj._w_layers[i]), np.std(bnn_obj._w_layers[i])]
             if bnn_obj._hyper_p:

@@ -91,7 +91,8 @@ def SoftMax(z):
 def RegressTransform(z, ind=None):
     if ind is None:
         ind = int(z.shape[1]/2)
-    z[:,ind:] = leaky_relu_f(z[:, ind:], -0.1)
+    # z[:,ind:] = relu_f(z[:, ind:],0) + 0.01
+    z[:, ind:] = np.exp(z[:, ind:])
     return z
 
 
@@ -106,8 +107,9 @@ def CalcAccuracyRegression(y,lab):
     acc = np.mean( (y[:,0:lab.shape[1]]-lab)**2 )
     return acc
 
-def CalcLabelAccuracyRegression(_, __):
-    return []
+def CalcLabelAccuracyRegression(y, lab):
+    acc = np.mean( (y[:,0:lab.shape[1]]-lab)**2, axis=0)
+    return acc
 
 def CalcAccuracy(y,lab):
     if len(y.shape) == 3: # if the posterior softmax array is used, return array of accuracies
