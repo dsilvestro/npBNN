@@ -104,7 +104,7 @@ def init_output_files(bnn_obj, filename="BNN", sample_from_prior=0, outpath="",a
         w_file_name = None
 
     head = ["it", "posterior", "likelihood", "prior", "accuracy", "test_accuracy"]
-    for i in range(bnn_obj._size_output):
+    for i in range(bnn_obj._n_output_prm):
         head.append("acc_C%s" % i)
     for i in range(bnn_obj._n_layers):
         head.append("mean_w%s" % i)
