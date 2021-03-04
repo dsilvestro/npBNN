@@ -7,7 +7,8 @@ from .BNN_lib import *
 
 # get data
 def get_data(f,l=None,testsize=0.1, batch_training=0,seed=1234, all_class_in_testset=1,
-             instance_id=0, header=0,feature_indx=None,randomize_order=True,from_file=True):
+             instance_id=0, header=0,feature_indx=None,randomize_order=True,from_file=True,
+             label_mode="classification"):
     np.random.seed(seed)
     inst_id = []
     if from_file:
@@ -44,7 +45,7 @@ def get_data(f,l=None,testsize=0.1, batch_training=0,seed=1234, all_class_in_tes
 
     
     try:
-        if not l.empty:
+        if l is not None:
             l = pd.DataFrame(l)
             tot_labels = l.values.astype(str) # if l already is a dataframe
     except:
@@ -58,7 +59,10 @@ def get_data(f,l=None,testsize=0.1, batch_training=0,seed=1234, all_class_in_tes
     
     if instance_id:
         tot_labels = tot_labels[:,1]
-    tot_labels_numeric = turn_labels_to_numeric(tot_labels, l)
+    if label_mode == "classification":
+        tot_labels_numeric = turn_labels_to_numeric(tot_labels, l)
+    else:
+        tot_labels_numeric = tot_labels
     x, labels, x_test, labels_test, inst_id_x, inst_id_x_test = randomize_data(tot_x, tot_labels_numeric,
                                                                                testsize=testsize,
                                                                                all_class_in_testset=all_class_in_testset,
