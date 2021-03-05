@@ -2,66 +2,59 @@ import numpy as np
 np.set_printoptions(suppress=True, precision=3)
 # load BNN package
 import np_bnn as bn
-
+import scipy.stats
 # set random seed
 rseed = 1234
 np.random.seed(rseed)
-# load data (2 files: features and labels)
-f= "./example_files/data_features.txt"
-l= "./example_files/data_labels.txt"
 
-dat = bn.get_data(f,l,
-                  seed=rseed,
+import numpy as np
+np.set_printoptions(suppress=True, precision=3)
+
+# generate data
+a = np.random.gamma(2,2,1000)
+b = np.random.random(len(a))*a
+x = np.random.uniform(1,4,1000)
+y0 = scipy.stats.gamma.logpdf(x,a,scale=1/b)
+y1 = scipy.stats.gamma.logpdf(x-1,a,scale=1/(a+b)) + 5
+features = np.array([x,a,b]).T
+labels = np.array([y0,y1]).T
+np.savetxt("/Users/dsilvestro/Software/npBNN/example_files/data_features_reg.txt", features)
+np.savetxt("/Users/dsilvestro/Software/npBNN/example_files/data_lab_reg.txt", labels)
+
+f="/Users/dsilvestro/Software/npBNN/example_files/data_features_reg.txt"
+l="/Users/dsilvestro/Software/npBNN/example_files/data_lab_reg.txt"
+
+
+dat = bn.get_data(f,
+                  l,
+                  seed=1234,
                   testsize=0.1, # 10% test set
-                  all_class_in_testset=1,
-                  header=1, # input data has a header
-                  instance_id=1) # input data includes names of instances
+                  all_class_in_testset=0,
+                  header=0, # input data has a header
+                  from_file=True,
+                  randomize_order=False,
+                  label_mode="regression")
 
-# make up new lab
-dat['labels'] = np.max(dat['data'], axis=1) / (np.max(dat['data']) - np.min(dat['data']))
-u = np.zeros((2, len(dat['labels'])))
-a = dat['labels'] + 0
-a -= np.mean(a)
-a *= 10
-a[a>0.5] += 2
-b = dat['labels'] + 0
-b -= np.mean(b)
-b = np.random.normal(b*10, 0.2) + 5
-u[0,:] = a
-u[1,:] = b
-dat['labels'] = u.T
-dat['test_labels'] = np.max(dat['test_data'], axis=1) / (np.max(dat['test_data']) - np.min(dat['test_data']))
-u = np.zeros((2, len(dat['test_labels'])))
-a = dat['test_labels'] + 0
-a -= np.mean(a)
-a *= 10
-a[a>0.5] += 2
-b = dat['test_labels'] + 0
-b -= np.mean(b)
-b = np.random.normal(b*10, 0.2) + 5
-u[0,:] = a
-u[1,:] = b
-dat['test_labels'] = u.T
+dat['labels'] = labels[:len(dat['labels']),:]
+dat['test_labels'] = labels[-len(dat['test_labels']):,:]
 
 # set up the BNN model
 bnn_model = bn.npBNN(dat,
-                     n_nodes = [10, 5],
+                     n_nodes = [6,4],
                      estimation_mode="regression"
 )
 
 
 # set up the MCMC environment
-sample_from_prior = 0 # set to 1 to run an MCMC sampling the parameters from the prior only
-
 mcmc = bn.MCMC(bnn_model,
-               update_f=[0.05, 0.05, 0.07],
-               update_ws=[0.05, 0.05, 0.075],
-               n_iteration=100000,
+               update_ws=[0.025,0.025, 0.05],
+               update_f=[0.005,0.005,0.05],
+               n_iteration=10000,
                sampling_f=100,
                print_f=1000,
                n_post_samples=100,
-               sample_from_prior=sample_from_prior,
                likelihood_tempering=1)
+
 
 
 mcmc._accuracy_lab_f(mcmc._y, bnn_model._labels)
@@ -75,10 +68,15 @@ bn.run_mcmc(bnn_model, mcmc, logger)
 import seaborn as sns
 import matplotlib.pyplot as plt
 fig = plt.figure(figsize=(5, 5))
-sns.regplot(x=dat['labels'][:,0].flatten(),y=mcmc._y[:,0])
-sns.regplot(x=dat['labels'][:,1].flatten(),y=mcmc._y[:,1])
+# sns.regplot(x=dat['labels'][:,0].flatten(),y=mcmc._y[:,0])
+sns.regplot(x=(dat['labels'][:,0].flatten()),y=(mcmc._y[:,0]))
+sns.regplot(x=(dat['test_labels'][:,0].flatten()),y=(mcmc._y_test[:,0]))
+sns.regplot(x=(dat['labels'][:,1].flatten()),y=(mcmc._y[:,1]))
+sns.regplot(x=(dat['test_labels'][:,1].flatten()),y=(mcmc._y_test[:,1]))
+# sns.regplot(x=dat['labels'][:,1].flatten(),y=mcmc._y[:,1])
 plt.axline((0, 0), (1, 1), linewidth=2, color='k')
 fig.show()
+
 
 
 
