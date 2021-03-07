@@ -30,6 +30,7 @@ dat = bn.get_data(f,
                   seed=1234,
                   testsize=0.1, # 10% test set
                   all_class_in_testset=0,
+                  cv=0, # cross validation (1st batch; set to 1,2,... to run on subsequent batches)
                   header=0, # input data has a header
                   from_file=True,
                   randomize_order=False,
@@ -40,7 +41,7 @@ dat['test_labels'] = labels[-len(dat['test_labels']):,:]
 
 # set up the BNN model
 bnn_model = bn.npBNN(dat,
-                     n_nodes = [6,4],
+                     n_nodes = [32,8],
                      estimation_mode="regression"
 )
 
@@ -49,7 +50,7 @@ bnn_model = bn.npBNN(dat,
 mcmc = bn.MCMC(bnn_model,
                update_ws=[0.025,0.025, 0.05],
                update_f=[0.005,0.005,0.05],
-               n_iteration=10000,
+               n_iteration=250000,
                sampling_f=100,
                print_f=1000,
                n_post_samples=100,
