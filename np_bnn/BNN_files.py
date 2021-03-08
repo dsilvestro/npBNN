@@ -85,6 +85,11 @@ def save_data(dat, lab, outname="data", test_dat=[], test_lab=[]):
 
 def init_output_files(bnn_obj, filename="BNN", sample_from_prior=0, outpath="",add_prms=None,
                       continue_logfile=False, log_all_weights=0):
+    # create output dir
+    outdir = os.path.dirname(filename)
+    if len(outdir)>0:
+        if not os.path.exists(outdir):
+            os.makedirs(outdir)
     'prior_f = 0, p_scale = 1, hyper_p = 0, freq_indicator = 0'
     if bnn_obj._freq_indicator ==0:
         ind = ""
@@ -141,7 +146,7 @@ def init_output_files(bnn_obj, filename="BNN", sample_from_prior=0, outpath="",a
     return logfile_name, w_file_name, pkl_file
 
 
-def randomize_data(tot_x, tot_labels, testsize=0.1, all_class_in_testset=1, inst_id=[], randomize=True):
+def randomize_data(tot_x, tot_labels, testsize=0.1, all_class_in_testset=1, inst_id=[], randomize=True, seed=1234):
     if randomize:
         if testsize:
             rnd_order = np.random.choice(range(len(tot_labels)), len(tot_labels), replace=False)

@@ -231,7 +231,6 @@ def CalcAccAboveThreshold(y,lab, threshold=0.95):
 
 
 def get_posterior_cat_prob(pred_features,
-                           pickle_file=None,
                            post_samples=None,
                            feature_index_to_shuffle=None,
                            post_summary_mode=0, # mode 0 is argmax, mode 1 is mean softmax
@@ -251,10 +250,6 @@ def get_posterior_cat_prob(pred_features,
         else:
             predict_features[:,feature_index_to_shuffle] = np.random.permutation(predict_features[:,feature_index_to_shuffle])
     # load posterior weights
-    if pickle_file is not None:
-        bnn_obj,mcmc_obj,logger_obj = load_obj(pickle_file)
-        post_samples = logger_obj._post_weight_samples
-        actFun = bnn_obj._act_fun
     post_weights = [post_samples[i]['weights'] for i in range(len(post_samples))]
     post_alphas = [post_samples[i]['alphas'] for i in range(len(post_samples))]
     if n_features < post_weights[0][0].shape[1]:
@@ -300,21 +295,24 @@ def predictBNN(predict_features,
                fname="",
                post_summary_mode=0,
                wd="",
-               actFun=ActFun()):
+               actFun=None):
 
-    post_softmax_probs,post_prob_predictions = get_posterior_cat_prob(predict_features,
-                                                                      pickle_file,
-                                                                      post_samples,
-                                                                      post_summary_mode=post_summary_mode,
-                                                                      actFun=actFun)
-    
     if pickle_file:
         predictions_outdir = os.path.dirname(pickle_file)
         out_name = os.path.splitext(pickle_file)[0]
         out_name = os.path.basename(out_name)
+        bnn_obj,mcmc_obj,logger_obj = load_obj(pickle_file)
+        post_samples = logger_obj._post_weight_samples
+        actFun = bnn_obj._act_fun
     else:
         predictions_outdir = wd
         out_name = ""
+
+    post_softmax_probs,post_prob_predictions = get_posterior_cat_prob(predict_features,
+                                                                      post_samples,
+                                                                      post_summary_mode=post_summary_mode,
+                                                                      actFun=actFun)
+
     if fname != "":
         fname = fname + "_"
     out_file_post_pr = os.path.join(predictions_outdir, fname + out_name + '_pred_pr.npy')
@@ -326,10 +324,11 @@ def predictBNN(predict_features,
         TPrate = CalcTP(post_prob_predictions, test_labels, threshold=threshold)
         FPrate = CalcFP(post_prob_predictions, test_labels, threshold=threshold)
         mean_accuracy = np.mean(accuracy)
+        cm = CalcConfusionMatrix(post_prob_predictions, test_labels))
         print("Accuracy:", mean_accuracy)
         print("True positive rate:", np.mean(TPrate))
         print("False positive rate:", np.mean(FPrate))
-        print("Confusion matrix:\n", CalcConfusionMatrix(post_prob_predictions, test_labels))
+        print("Confusion matrix:\n", cm
         out_file_acc = os.path.join(predictions_outdir, fname + out_name + '_accuracy.txt')
         with open(out_file_acc,'w') as outf:
             outf.writelines("Mean accuracy: %s (TP: %s; FP: %s)" % (mean_accuracy, TPrate, FPrate))
@@ -366,7 +365,7 @@ def predictBNN(predict_features,
     print("Predictions saved in files:")
     print('   ', out_file_post_pr)
     print('   ', out_file_mean_pr,"\n")
-    return {'post_prob_predictions': post_prob_predictions, 'mean_accuracy': mean_accuracy}
+    return {'post_prob_predictions': post_prob_predictions, 'mean_accuracy': mean_accuracy, 'confusion_matrix': cm}
 
 
 def feature_importance(input_features,
@@ -378,27 +377,31 @@ def feature_importance(input_features,
                        verbose=False,
                        post_summary_mode=0,
                        n_permutations=100,
-                       feature_blocks=[],
+                       feature_blocks=dict(),
                        predictions_outdir='',
                        unlink_features_within_block=False,
-                       actFun=ActFun()):
+                       actFun=None):
+
     features = input_features.copy()
     feature_indices = np.arange(features.shape[1])
     # if no names are provided, name them by index
     if len(feature_names) == 0:
         feature_names = feature_indices.astype(str)
-    if len(feature_blocks) > 0:
+    if len(feature_blocks.keys()) > 0:
         selected_features = []
-        selected_feature_names = []
-        for block_indices in feature_blocks:
-            selected_features.append(list(np.array(feature_indices)[block_indices]))
-            selected_feature_names.append(list(np.array(feature_names)[block_indices]))
+        feature_block_names = []
+        for block_name, block_indices in feature_blocks.items():
+            selected_features.append(block_indices)
+            feature_block_names.append(block_name)
     else:
         selected_features = [[i] for i in feature_indices]
-        selected_feature_names = [[i] for i in feature_names]
-    feature_block_names = [','.join(np.array(i).astype(str)) for i in selected_feature_names] #join the feature names into one string for each block for output df
+        feature_block_names = [[i] for i in feature_names]
     # get accuracy with all features
-    post_softmax_probs,post_prob_predictions = get_posterior_cat_prob(input_features, weights_pkl, weights_posterior,
+    if weights_pkl:
+        bnn_obj,mcmc_obj,logger_obj = load_obj(weights_pkl)
+        weights_posterior = logger_obj._post_weight_samples
+        actFun = bnn_obj._act_fun
+    post_softmax_probs,post_prob_predictions = get_posterior_cat_prob(input_features, weights_posterior,
                                                                       post_summary_mode=post_summary_mode,
                                                                       actFun=actFun)
     ref_accuracy = CalcAccuracy(post_prob_predictions, true_labels)
@@ -411,7 +414,7 @@ def feature_importance(input_features,
             print('Processing feature block %i',block_id+1)
         n_accuracies = []
         for _ in np.arange(n_permutations):
-            post_softmax_probs,post_prob_predictions = get_posterior_cat_prob(input_features, weights_pkl, weights_posterior,
+            post_softmax_probs,post_prob_predictions = get_posterior_cat_prob(input_features, weights_posterior,
                                                                               feature_index_to_shuffle=feature_block,
                                                                               post_summary_mode=post_summary_mode,
                                                                               unlink_features_within_block=unlink_features_within_block,
@@ -447,6 +450,7 @@ def feature_importance(input_features,
     print("Output saved in: %s" % feature_importance_df_filename)
     return feature_importance_df_sorted
 
+    
 
 def get_weights_from_tensorflow_model(model_dir):
     try:
