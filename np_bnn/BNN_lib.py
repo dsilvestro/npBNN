@@ -254,7 +254,8 @@ def get_posterior_cat_prob(pred_features,
                            feature_index_to_shuffle=None,
                            post_summary_mode=0, # mode 0 is argmax, mode 1 is mean softmax
                            unlink_features_within_block=False,
-                           actFun=None):
+                           actFun=None,
+                           output_act_fun=None):
     if len(pred_features) ==0:
         print("Data not found.")
         return 0
@@ -314,7 +315,8 @@ def predictBNN(predict_features,
                fname="",
                post_summary_mode=0,
                wd="",
-               actFun=None):
+               actFun=None,
+               output_act_fun=None):
 
     if pickle_file:
         predictions_outdir = os.path.dirname(pickle_file)
@@ -323,6 +325,7 @@ def predictBNN(predict_features,
         bnn_obj,mcmc_obj,logger_obj = load_obj(pickle_file)
         post_samples = logger_obj._post_weight_samples
         actFun = bnn_obj._act_fun
+        output_act_fun = bnn_obj.bnn_obj._output_act_fun
     else:
         predictions_outdir = wd
         out_name = ""
@@ -330,7 +333,8 @@ def predictBNN(predict_features,
     post_softmax_probs,post_prob_predictions = get_posterior_cat_prob(predict_features,
                                                                       post_samples,
                                                                       post_summary_mode=post_summary_mode,
-                                                                      actFun=actFun)
+                                                                      actFun=actFun,
+                                                                      output_act_fun=output_act_fun)
 
     if fname != "":
         fname = fname + "_"
@@ -343,11 +347,11 @@ def predictBNN(predict_features,
         TPrate = CalcTP(post_prob_predictions, test_labels, threshold=threshold)
         FPrate = CalcFP(post_prob_predictions, test_labels, threshold=threshold)
         mean_accuracy = np.mean(accuracy)
-        cm = CalcConfusionMatrix(post_prob_predictions, test_labels))
+        cm = CalcConfusionMatrix(post_prob_predictions, test_labels)
         print("Accuracy:", mean_accuracy)
         print("True positive rate:", np.mean(TPrate))
         print("False positive rate:", np.mean(FPrate))
-        print("Confusion matrix:\n", cm
+        print("Confusion matrix:\n", cm)
         out_file_acc = os.path.join(predictions_outdir, fname + out_name + '_accuracy.txt')
         with open(out_file_acc,'w') as outf:
             outf.writelines("Mean accuracy: %s (TP: %s; FP: %s)" % (mean_accuracy, TPrate, FPrate))
@@ -384,7 +388,7 @@ def predictBNN(predict_features,
     print("Predictions saved in files:")
     print('   ', out_file_post_pr)
     print('   ', out_file_mean_pr,"\n")
-    return {'post_prob_predictions': post_prob_predictions, 'mean_accuracy': mean_accuracy, 'confusion_matrix': cm}
+    return {'post_prob_predictions': post_prob_predictions, 'mean_accuracy': mean_accuracy, 'confusion_matrix': cm.values.astype(int)}
 
 
 def feature_importance(input_features,
@@ -399,7 +403,8 @@ def feature_importance(input_features,
                        feature_blocks=dict(),
                        predictions_outdir='',
                        unlink_features_within_block=False,
-                       actFun=None):
+                       actFun=None,
+                       output_act_fun=None):
 
     features = input_features.copy()
     feature_indices = np.arange(features.shape[1])
@@ -420,9 +425,11 @@ def feature_importance(input_features,
         bnn_obj,mcmc_obj,logger_obj = load_obj(weights_pkl)
         weights_posterior = logger_obj._post_weight_samples
         actFun = bnn_obj._act_fun
+        output_act_fun = bnn_obj._output_act_fun
     post_softmax_probs,post_prob_predictions = get_posterior_cat_prob(input_features, weights_posterior,
                                                                       post_summary_mode=post_summary_mode,
-                                                                      actFun=actFun)
+                                                                      actFun=actFun,
+                                                                      output_act_fun=output_act_fun)
     ref_accuracy = CalcAccuracy(post_prob_predictions, true_labels)
     if verbose:
         print("Reference accuracy (mean):", np.mean(ref_accuracy))
@@ -437,7 +444,8 @@ def feature_importance(input_features,
                                                                               feature_index_to_shuffle=feature_block,
                                                                               post_summary_mode=post_summary_mode,
                                                                               unlink_features_within_block=unlink_features_within_block,
-                                                                              actFun=actFun)
+                                                                              actFun=actFun,
+                                                                              output_act_fun=output_act_fun)
             accuracy = CalcAccuracy(post_prob_predictions, true_labels)
             n_accuracies.append(accuracy)
         accuracies_wo_feature.append(n_accuracies)
