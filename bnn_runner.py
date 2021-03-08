@@ -18,6 +18,7 @@ dat = bn.get_data(f,l,
                   testsize=0.1, # 10% test set
                   all_class_in_testset=1,
                   header=1, # input data has a header
+                  cv=0, # cross validation (1st batch; set to 1,2,... to run on subsequent batches)
                   instance_id=1) # input data includes names of instances
 
 

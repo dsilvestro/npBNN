@@ -7,7 +7,8 @@ from .BNN_lib import *
 
 # get data
 def get_data(f,l=None,testsize=0.1, batch_training=0,seed=1234, all_class_in_testset=1,
-             instance_id=0, header=0,feature_indx=None,randomize_order=True,from_file=True):
+             instance_id=0, header=0,feature_indx=None,randomize_order=True,from_file=True,
+             label_mode="classification", cv=-1):
     np.random.seed(seed)
     inst_id = []
     if from_file:
@@ -42,38 +43,44 @@ def get_data(f,l=None,testsize=0.1, batch_training=0,seed=1234, all_class_in_tes
         tot_x = tot_x[:,feature_indx]
         feature_names = feature_names[feature_indx]
 
-    
-    try:
-        if not l.empty:
-            l = pd.DataFrame(l)
-            tot_labels = l.values.astype(str) # if l already is a dataframe
-    except:
-        if not l:
-            return {'data': np.array(tot_x).astype(float), 'labels': [], 'label_dict': [],
-                    'test_data': [], 'test_labels': [],
-                    'id_data': inst_id, 'id_test_data': [],
-                    'file_name': fname, 'feature_names': feature_names}
+    if l is None:
+        out_dict = {'data': np.array(tot_x).astype(float), 'labels': [], 'label_dict': [],
+                'test_data': [], 'test_labels': [],
+                'id_data': inst_id, 'id_test_data': [],
+                'file_name': fname, 'feature_names': feature_names}
+    else:
+        try:
+                l = pd.DataFrame(l)
+                tot_labels = l.values.astype(str) # if l already is a dataframe
+        except:
+                tot_labels = np.loadtxt(l,skiprows=header,dtype=str)
+
+        if instance_id:
+            tot_labels = tot_labels[:, 1]
+
+        if label_mode == "classification":
+            tot_labels_numeric = turn_labels_to_numeric(tot_labels, l)
         else:
-            tot_labels = np.loadtxt(l,skiprows=header,dtype=str)
-    
-    if instance_id:
-        tot_labels = tot_labels[:,1]
-    tot_labels_numeric = turn_labels_to_numeric(tot_labels, l)
-    x, labels, x_test, labels_test, inst_id_x, inst_id_x_test = randomize_data(tot_x, tot_labels_numeric,
-                                                                               testsize=testsize,
-                                                                               all_class_in_testset=all_class_in_testset,
-                                                                               inst_id=inst_id,
-                                                                               randomize=randomize_order)
+            tot_labels_numeric = tot_labels
+        x, labels, x_test, labels_test, inst_id_x, inst_id_x_test = randomize_data(tot_x, tot_labels_numeric,
+                                                                                   testsize=testsize,
+                                                                                   all_class_in_testset=all_class_in_testset,
+                                                                                   inst_id=inst_id,
+                                                                                   randomize=randomize_order,
+                                                                                   seed=seed,
+                                                                                   cv=cv)
 
-    if batch_training:
-        indx = np.random.randint(0,len(labels),batch_training)
-        x = x[indx]
-        labels = labels[indx]
+        if batch_training:
+            indx = np.random.randint(0,len(labels),batch_training)
+            x = x[indx]
+            labels = labels[indx]
 
-    return {'data': np.array(x).astype(float), 'labels': labels, 'label_dict': np.unique(tot_labels),
-            'test_data': np.array(x_test).astype(float), 'test_labels': labels_test,
-            'id_data': inst_id_x, 'id_test_data': inst_id_x_test,
-            'file_name': fname, 'feature_names': feature_names}
+        out_dict = {'data': np.array(x).astype(float), 'labels': labels, 'label_dict': np.unique(tot_labels),
+                'test_data': np.array(x_test).astype(float), 'test_labels': labels_test,
+                'id_data': inst_id_x, 'id_test_data': inst_id_x_test,
+                'file_name': fname, 'feature_names': feature_names}
+
+    return out_dict
 
 
 def save_data(dat, lab, outname="data", test_dat=[], test_lab=[]):
@@ -109,7 +116,7 @@ def init_output_files(bnn_obj, filename="BNN", sample_from_prior=0, outpath="",a
         w_file_name = None
 
     head = ["it", "posterior", "likelihood", "prior", "accuracy", "test_accuracy"]
-    for i in range(bnn_obj._size_output):
+    for i in range(bnn_obj._n_output_prm):
         head.append("acc_C%s" % i)
     for i in range(bnn_obj._n_layers):
         head.append("mean_w%s" % i)
@@ -146,7 +153,8 @@ def init_output_files(bnn_obj, filename="BNN", sample_from_prior=0, outpath="",a
     return logfile_name, w_file_name, pkl_file
 
 
-def randomize_data(tot_x, tot_labels, testsize=0.1, all_class_in_testset=1, inst_id=[], randomize=True, seed=1234):
+def randomize_data(tot_x, tot_labels, testsize=0.1, all_class_in_testset=1, inst_id=[], randomize=True, seed=1234, cv=-1):
+    np.random.seed(seed)
     if randomize:
         if testsize:
             rnd_order = np.random.choice(range(len(tot_labels)), len(tot_labels), replace=False)
@@ -164,7 +172,22 @@ def randomize_data(tot_x, tot_labels, testsize=0.1, all_class_in_testset=1, inst
     if len(inst_id):
         tot_inst_id = inst_id[rnd_order]
 
-    if all_class_in_testset and testsize:
+    if cv > -1 and testsize:
+        ind_start = test_set_ind * cv
+        ind_end = np.min([ind_start + test_set_ind, len(tot_labels)])
+        indx_test_set = range(ind_start, ind_end)
+        x_test = tot_x[indx_test_set, :]
+        labels_test = tot_labels[indx_test_set]
+        x = np.delete(tot_x, indx_test_set, axis=0)
+        labels = np.delete(tot_labels, indx_test_set)
+        if len(inst_id):
+            inst_id_test = tot_inst_id[indx_test_set]
+            inst_id_x = np.delete(tot_inst_id, indx_test_set)
+        print("test set:", indx_test_set)
+        print(x_test.shape, x.shape)
+
+
+    elif all_class_in_testset and testsize:
         test_set_ind = []
 
         for i in np.unique(tot_labels):

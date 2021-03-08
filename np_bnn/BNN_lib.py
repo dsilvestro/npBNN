@@ -69,7 +69,12 @@ def calc_likelihood(prediction, labels, sample_id, class_weight=[], lik_temp=1):
         # else:
         return lik_temp * np.sum(np.log(prediction[sample_id, labels]))
 
-
+def calc_likelihood_regression(prediction, # 2D array: inst x (mus + sigs)
+                               true_values, # 2D array: val[inst x n_param
+                               _, __,
+                               lik_temp=1):
+    ind = true_values.shape[1] #int(prediction.shape[1] / 2)
+    return lik_temp * np.sum(scipy.stats.norm.logpdf(true_values, prediction[:,:ind], prediction[:,ind:]))
 
 def MatrixMultiplication(x1,x2):
     z1 = np.einsum('nj,ij->ni', x1, x2)
@@ -83,6 +88,13 @@ def SoftMax(z):
     # return ((np.exp(z).T)/np.sum(np.exp(z),axis=1)).T
     return scipy.special.softmax(z, axis=1)
 
+def RegressTransform(z, ind=None):
+    if ind is None:
+        ind = int(z.shape[1]/2)
+    # z[:,ind:] = relu_f(z[:, ind:],0) + 0.01
+    z[:, ind:] = np.exp(z[:, ind:])
+    return z
+
 
 def RunHiddenLayer(z0, w01, actFun, layer_n):
     z1 = MatrixMultiplication(z0, w01)
@@ -91,6 +103,13 @@ def RunHiddenLayer(z0, w01, actFun, layer_n):
     else:
         return z1
 
+def CalcAccuracyRegression(y,lab):
+    acc = np.mean( (y[:,0:lab.shape[1]]-lab)**2 )
+    return acc
+
+def CalcLabelAccuracyRegression(y, lab):
+    acc = np.mean( (y[:,0:lab.shape[1]]-lab)**2, axis=0)
+    return acc
 
 def CalcAccuracy(y,lab):
     if len(y.shape) == 3: # if the posterior softmax array is used, return array of accuracies
@@ -129,17 +148,17 @@ def SaveObject(obj, filename):
     with open(filename, 'wb') as output:  # Overwrites any existing file.
         pickle.dump(obj, output, pickle.HIGHEST_PROTOCOL)
 
-def RunPredict(data, weights, actFun):
+def RunPredict(data, weights, actFun, output_act_fun):
     # weights: list of 2D arrays
     tmp = data+0
     for i in range(len(weights)-1):
         tmp = RunHiddenLayer(tmp,weights[i],actFun, i)
     tmp = RunHiddenLayer(tmp, weights[i+1], False, i+1)
     # output
-    y_predict = SoftMax(tmp)
+    y_predict = output_act_fun(tmp)
     return y_predict
 
-def RunPredictInd(data, weights, ind, actFun):
+def RunPredictInd(data, weights, ind, actFun, output_act_fun):
     # weights: list of 2D arrays
     tmp = data+0
     for i in range(len(weights)-1):
@@ -149,7 +168,7 @@ def RunPredictInd(data, weights, ind, actFun):
             tmp = RunHiddenLayer(tmp,weights[i],actFun, i)
     tmp = RunHiddenLayer(tmp, weights[i+1], False, i+1)
     # output
-    y_predict = SoftMax(tmp)
+    y_predict = output_act_fun(tmp)
     return y_predict
 
 
@@ -171,7 +190,7 @@ def calcHPD(data, level):
     nData = len(data)
     nIn = int(round(level * nData))
     if nIn < 2 :
-        sys.exit('\n\nToo little data to calculate marginal rates.')
+        sys.exit('\n\nToo little data to calculate marginal parameters.')
     i = 0
     r = d[i+nIn-1] - d[i]
     for k in range(len(d) - (nIn - 1)):
@@ -259,7 +278,7 @@ def get_posterior_cat_prob(pred_features,
     for i in range(len(post_weights)):
         actFun_i = actFun
         actFun_i.reset_prm(post_alphas[i])
-        pred = RunPredict(predict_features, post_weights[i], actFun=actFun_i)
+        pred = RunPredict(predict_features, post_weights[i], actFun=actFun_i, output_act_fun=output_act_fun)
         post_cat_probs.append(pred)
     post_softmax_probs = np.array(post_cat_probs)
     if post_summary_mode == 0: # use argmax for each posterior sample
