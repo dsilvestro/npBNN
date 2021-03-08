@@ -79,7 +79,7 @@ post_pr_test = bn.predictBNN(dat['test_data'],
                              fname=dat['file_name'],
                              post_summary_mode=0)
 
-
+post_pr_test['confusion_matrix']
 
 # determine feature importance with test data
 feature_importance = bn.feature_importance(dat['test_data'],
