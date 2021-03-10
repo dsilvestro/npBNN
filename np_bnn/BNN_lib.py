@@ -401,6 +401,7 @@ def feature_importance(input_features,
                        post_summary_mode=0,
                        n_permutations=100,
                        feature_blocks=dict(),
+                       write_to_file=True, 
                        predictions_outdir='',
                        unlink_features_within_block=False,
                        actFun=None,
@@ -462,19 +463,21 @@ def feature_importance(input_features,
                                                   'acc_with_feature_randomized_mean','acc_with_feature_randomized_std'])
     feature_importance_df.iloc[:,2:] = feature_importance_df.iloc[:,2:].astype(float)
     feature_importance_df_sorted = feature_importance_df.sort_values('delta_acc_mean',ascending=False)
-    # define outfile name
-    if predictions_outdir == "":
-        predictions_outdir = os.path.dirname(weights_pkl)
-    if not os.path.exists(predictions_outdir) and predictions_outdir != "":
-        os.makedirs(predictions_outdir)
-    if fname_stem != "":
-        fname_stem = fname_stem + "_"
-    feature_importance_df_filename = os.path.join(predictions_outdir, fname_stem + '_feature_importance.txt')
     # format the last two columns as numeric for applyign float printing formatting options
     feature_importance_df_sorted['delta_acc_mean'] = pd.to_numeric(feature_importance_df_sorted['delta_acc_mean'])
     feature_importance_df_sorted['acc_with_feature_randomized_mean'] = pd.to_numeric(feature_importance_df_sorted['acc_with_feature_randomized_mean'])
-    feature_importance_df_sorted.to_csv(feature_importance_df_filename,sep='\t',index=False,header=True,float_format='%.6f')
-    print("Output saved in: %s" % feature_importance_df_filename)
+
+    if write_to_file:
+        # define outfile name
+        if predictions_outdir == "":
+            predictions_outdir = os.path.dirname(weights_pkl)
+        if not os.path.exists(predictions_outdir) and predictions_outdir != "":
+            os.makedirs(predictions_outdir)
+        if fname_stem != "":
+            fname_stem = fname_stem + "_"
+        feature_importance_df_filename = os.path.join(predictions_outdir, fname_stem + '_feature_importance.txt')
+        feature_importance_df_sorted.to_csv(feature_importance_df_filename,sep='\t',index=False,header=True,float_format='%.6f')
+        print("Output saved in: %s" % feature_importance_df_filename)
     return feature_importance_df_sorted
 
     

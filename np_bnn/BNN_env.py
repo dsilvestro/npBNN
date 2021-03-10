@@ -41,6 +41,10 @@ class npBNN():
             self._n_output_prm = self._labels.shape[1]
             self._output_act_fun = RegressTransform
         self._init_std = init_std
+        try: # see if we have an actual list or single element
+            n_nodes = list(n_nodes)
+        except TypeError:
+            n_nodes = [n_nodes]
         self._n_layers = len(n_nodes) + 1
         self._n_nodes = n_nodes
         self._use_bias_node = use_bias_node
