@@ -518,6 +518,33 @@ def get_accuracy_threshold(probs, labels, threshold=0.75):
     cm = CalcConfusionMatrix(res_supported, labels_supported)
     return {'predictions': pred, 'accuracy': accuracy, 'retained_samples': dropped_frequency, 'confusion_matrix': cm}
 
+
+def get_posterior_threshold(pkl_file,target_acc=0.9):
+    # determine the posterior threshold based on given target accuracy
+    bnn_obj, mcmc_obj, logger_obj = load_obj(pkl_file)
+    # predict
+    post_pr_test = predictBNN(bnn_obj._test_data,
+                                  pickle_file=pkl_file,
+                                  test_labels=bnn_obj._test_labels,
+                                  fname='test',
+                                  post_summary_mode=1,
+                                  threshold=0.95)
+    # CALC TRADEOFFS
+    res = post_pr_test['post_prob_predictions']
+    labels=bnn_obj._test_labels
+    tbl_results = []
+    for i in np.linspace(0.01, 0.99, 99):
+        try:
+            scores = get_accuracy_threshold(res, labels, threshold=i)
+            tbl_results.append([i, scores['accuracy'], scores['retained_samples']])
+        except:
+            pass
+    tbl_results = np.array(tbl_results)
+    indx = np.min(np.where(np.round(tbl_results[:,1],2) >= target_acc))
+    selected_row = tbl_results[indx,:]
+    return selected_row[0]
+
+
 def sample_from_categorical(posterior_weights=None, post_prob_file=None, verbose=False):
     if posterior_weights is not None:
         pass
