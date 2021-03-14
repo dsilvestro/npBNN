@@ -13,12 +13,14 @@ l= "./example_files/data_labels.txt"
 # with testsize=0.1, 10% of the data are randomly selected as test set
 # if all_class_in_testset = 1: 10% of the samples and a minimum of 1 sample
 # for each class are represented in the test set
+cross_validation_batch = 0 # cross validation (1st batch; set to 1,2,... to run on subsequent batches)
+
 dat = bn.get_data(f,l,
                   seed=rseed,
                   testsize=0.1, # 10% test set
                   all_class_in_testset=1,
                   header=1, # input data has a header
-                  cv=0, # cross validation (1st batch; set to 1,2,... to run on subsequent batches)
+                  cv=cross_validation_batch,
                   instance_id=1) # input data includes names of instances
 
 
@@ -65,7 +67,8 @@ mcmc = bn.MCMC(bnn_model,
 
 
 # initialize output files
-logger = bn.postLogger(bnn_model, filename="BNN", log_all_weights=0)
+out_file_name = "BNN_cv%s" % cross_validation_batch
+logger = bn.postLogger(bnn_model, filename=out_file_name, log_all_weights=0)
 
 # run MCMC
 bn.run_mcmc(bnn_model, mcmc, logger)

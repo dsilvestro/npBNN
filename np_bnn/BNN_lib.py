@@ -519,7 +519,7 @@ def get_accuracy_threshold(probs, labels, threshold=0.75):
     return {'predictions': pred, 'accuracy': accuracy, 'retained_samples': dropped_frequency, 'confusion_matrix': cm}
 
 
-def get_posterior_threshold(pkl_file,target_acc=0.9):
+def get_posterior_threshold(pkl_file,target_acc=0.9,output_file=None):
     # determine the posterior threshold based on given target accuracy
     bnn_obj, mcmc_obj, logger_obj = load_obj(pkl_file)
     # predict
@@ -540,9 +540,15 @@ def get_posterior_threshold(pkl_file,target_acc=0.9):
         except:
             pass
     tbl_results = np.array(tbl_results)
+    if output_file is not None:
+        df = pd.DataFrame(tbl_results, columns=['Threshold', 'Accuracy', 'Retained_data'])
+        df = np.round(df, 3)
+        df.to_csv(path_or_buf=output_file, sep='\t', index=False, header=True)
     indx = np.min(np.where(np.round(tbl_results[:,1],2) >= target_acc))
     selected_row = tbl_results[indx,:]
-    return selected_row[0]
+    print("Selected threshold: PP =", np.round(selected_row[0], 3), "yielding test accuracy ~ %s" % (target_acc))
+    print("Retained instances above threshold:", np.round(selected_row[2], 3))
+    return selected_row
 
 
 def sample_from_categorical(posterior_weights=None, post_prob_file=None, verbose=False):
