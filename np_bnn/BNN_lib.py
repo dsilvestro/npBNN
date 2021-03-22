@@ -305,30 +305,28 @@ def get_posterior_cat_prob(pred_features,
 
 
 def predictBNN(predict_features,
-               pickle_file=None,
-               post_samples=None,
+               pickle_file,
                test_labels=[],
                instance_id=[],
                pickle_file_prior=0,
+               target_acc = None,
                threshold=0.95,
                bf=150,
-               fname="",
                post_summary_mode=0,
+               fname="",
                wd="",
-               actFun=None,
-               output_act_fun=None):
+               verbose=1):
 
-    if pickle_file:
-        predictions_outdir = os.path.dirname(pickle_file)
-        out_name = os.path.splitext(pickle_file)[0]
-        out_name = os.path.basename(out_name)
-        bnn_obj,mcmc_obj,logger_obj = load_obj(pickle_file)
-        post_samples = logger_obj._post_weight_samples
-        actFun = bnn_obj._act_fun
-        output_act_fun = bnn_obj._output_act_fun
-    else:
+    bnn_obj,mcmc_obj,logger_obj = load_obj(pickle_file)
+    post_samples = logger_obj._post_weight_samples
+    actFun = bnn_obj._act_fun
+    output_act_fun = bnn_obj._output_act_fun
+    out_name = os.path.splitext(pickle_file)[0]
+    out_name = os.path.basename(out_name)
+    if wd != "":
         predictions_outdir = wd
-        out_name = ""
+    else:
+        predictions_outdir = os.path.dirname(pickle_file)
 
     post_softmax_probs,post_prob_predictions = get_posterior_cat_prob(predict_features,
                                                                       post_samples,
@@ -336,27 +334,36 @@ def predictBNN(predict_features,
                                                                       actFun=actFun,
                                                                       output_act_fun=output_act_fun)
 
+    if target_acc:
+        posterior_threshold = get_posterior_threshold(pickle_file,target_acc,post_summary_mode)
+        high_pp_indices = np.where(np.max(post_prob_predictions, axis=1) > posterior_threshold)[0]
+        post_prob_predictions = turn_low_pp_instances_to_nan(post_prob_predictions,high_pp_indices)
+        post_softmax_probs = np.array([turn_low_pp_instances_to_nan(i,high_pp_indices) for i in post_softmax_probs])
+
     if fname != "":
         fname = fname + "_"
     out_file_post_pr = os.path.join(predictions_outdir, fname + out_name + '_pred_pr.npy')
     out_file_mean_pr = os.path.join(predictions_outdir, fname + out_name + '_pred_mean_pr.txt')
 
     if len(test_labels) > 0:
-        CalcAccAboveThreshold(post_prob_predictions, test_labels, threshold=0.95)
+        #CalcAccAboveThreshold(post_prob_predictions, test_labels, threshold=0.95)
         accuracy = CalcAccuracy(post_prob_predictions, test_labels)
         TPrate = CalcTP(post_prob_predictions, test_labels, threshold=threshold)
         FPrate = CalcFP(post_prob_predictions, test_labels, threshold=threshold)
         mean_accuracy = np.mean(accuracy)
         cm = CalcConfusionMatrix(post_prob_predictions, test_labels)
-        print("Accuracy:", mean_accuracy)
-        print("True positive rate:", np.mean(TPrate))
-        print("False positive rate:", np.mean(FPrate))
-        print("Confusion matrix:\n", cm)
+        cm_out = cm.values.astype(int)
+        if verbose:
+            print("Accuracy:", mean_accuracy)
+            print("True positive rate:", np.mean(TPrate))
+            print("False positive rate:", np.mean(FPrate))
+            print("Confusion matrix:\n", cm)
         out_file_acc = os.path.join(predictions_outdir, fname + out_name + '_accuracy.txt')
         with open(out_file_acc,'w') as outf:
             outf.writelines("Mean accuracy: %s (TP: %s; FP: %s)" % (mean_accuracy, TPrate, FPrate))
     else:
         mean_accuracy = np.nan
+        cm_out = np.nan
     if pickle_file_prior:
         prior_samples = load_obj(pickle_file_prior)
         prior_weights = [prior_samples[i]['weights'] for i in range(len(prior_samples))]
@@ -373,9 +380,9 @@ def predictBNN(predict_features,
     
         TPrate = CalcTP_BF(post_prob_predictions, prior_prob_predictions, test_labels, threshold=bf)
         FPrate = CalcFP_BF(post_prob_predictions, prior_prob_predictions, test_labels, threshold=bf)
-    
-        print("True positive rate (BF):", np.mean(TPrate))
-        print("False positive rate (BF):", np.mean(FPrate))
+        if verbose:
+            print("True positive rate (BF):", np.mean(TPrate))
+            print("False positive rate (BF):", np.mean(FPrate))
 
     if len(instance_id):
         post_prob_predictions_id = np.hstack((instance_id.reshape(len(instance_id), 1),
@@ -385,10 +392,11 @@ def predictBNN(predict_features,
         np.savetxt(out_file_mean_pr, post_prob_predictions, fmt='%.3f')
     # print the arrays to file
     np.save(out_file_post_pr, post_softmax_probs)
-    print("Predictions saved in files:")
-    print('   ', out_file_post_pr)
-    print('   ', out_file_mean_pr,"\n")
-    return {'post_prob_predictions': post_prob_predictions, 'mean_accuracy': mean_accuracy, 'confusion_matrix': cm.values.astype(int)}
+    if verbose:
+        print("Predictions saved in files:")
+        print('   ', out_file_post_pr)
+        print('   ', out_file_mean_pr,"\n")
+    return {'post_prob_predictions': post_prob_predictions, 'mean_accuracy': mean_accuracy, 'confusion_matrix': cm_out}
 
 
 def feature_importance(input_features,
@@ -519,16 +527,15 @@ def get_accuracy_threshold(probs, labels, threshold=0.75):
     return {'predictions': pred, 'accuracy': accuracy, 'retained_samples': dropped_frequency, 'confusion_matrix': cm}
 
 
-def get_posterior_threshold(pkl_file,target_acc=0.9):
+def get_posterior_threshold(pkl_file,target_acc=0.9,post_summary_mode=1):
     # determine the posterior threshold based on given target accuracy
     bnn_obj, mcmc_obj, logger_obj = load_obj(pkl_file)
     # predict
     post_pr_test = predictBNN(bnn_obj._test_data,
                                   pickle_file=pkl_file,
                                   test_labels=bnn_obj._test_labels,
-                                  fname='test',
-                                  post_summary_mode=1,
-                                  threshold=0.95)
+                                  post_summary_mode=post_summary_mode,
+                                  verbose=0)
     # CALC TRADEOFFS
     res = post_pr_test['post_prob_predictions']
     labels=bnn_obj._test_labels
@@ -540,9 +547,20 @@ def get_posterior_threshold(pkl_file,target_acc=0.9):
         except:
             pass
     tbl_results = np.array(tbl_results)
-    indx = np.min(np.where(np.round(tbl_results[:,1],2) >= target_acc))
+    try:
+        indx = np.min(np.where(np.round(tbl_results[:,1],2) >= target_acc))
+    except ValueError:
+        sys.exit('Target accuracy can not be reached. Please set threshold lower or try different post_summary_mode.')
     selected_row = tbl_results[indx,:]
     return selected_row[0]
+
+
+def turn_low_pp_instances_to_nan(pred,high_pp_indices):            
+    pred_temp = np.zeros(pred.shape)
+    pred_temp[:] = np.nan
+    pred_temp[high_pp_indices] = pred[high_pp_indices]
+    pred = pred_temp
+    return pred
 
 
 def sample_from_categorical(posterior_weights=None, post_prob_file=None, verbose=False):
