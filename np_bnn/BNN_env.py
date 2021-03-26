@@ -78,13 +78,7 @@ class npBNN():
         # init weights
         if init_weights is None:
             if pickle_file == "":
-                # 1st layer
-                w_layers = [np.random.normal(0, self._init_std, (self._n_nodes[0], self._n_features))]
-                # add hidden layers
-                for i in range(1, self._n_layers - 1):
-                    w_layers.append(np.random.normal(0, self._init_std, (self._n_nodes[i], self._n_nodes[i - 1])))
-                # last layer
-                w_layers.append(np.random.normal(0, self._init_std, (self._size_output, self._n_nodes[-1])))
+                w_layers = init_weight_prm(self._n_nodes, self._n_features, self._size_output, init_std=0.1)
             else:
                 bnn_obj,mcmc_obj,logger_obj = load_obj(pickle_file)
                 post_samples = logger_obj._post_weight_samples
