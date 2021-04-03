@@ -83,6 +83,11 @@ def MatrixMultiplication(x1,x2):
     # 	print(np.einsum('j,ij->i', x[i], w_in_l1))
     return z1
 
+def MatrixMultiplicationBias(x1,x2):
+    z1 = np.einsum('nj,ij,i->ni', x1, x2[:,1:], x2[:,0])
+    return z1
+
+
 # SoftMax function
 def SoftMax(z):
     # return ((np.exp(z).T)/np.sum(np.exp(z),axis=1)).T
