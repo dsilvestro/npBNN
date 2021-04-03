@@ -78,7 +78,11 @@ class npBNN():
         # init weights
         if init_weights is None:
             if pickle_file == "":
-                w_layers = init_weight_prm(self._n_nodes, self._n_features, self._size_output, init_std=0.1)
+                w_layers = init_weight_prm(self._n_nodes,
+                                           self._n_features,
+                                           self._size_output,
+                                           init_std=0.1,
+                                           bias_node=use_bias_node-1)
             else:
                 bnn_obj,mcmc_obj,logger_obj = load_obj(pickle_file)
                 post_samples = logger_obj._post_weight_samples

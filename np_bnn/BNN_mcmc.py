@@ -8,15 +8,17 @@ import random
 from numpy.random import MT19937
 from numpy.random import RandomState, SeedSequence
 
-def init_weight_prm(n_nodes, n_features, size_output, init_std=0.1):
+def init_weight_prm(n_nodes, n_features, size_output, init_std=0.1, bias_node=0):
+    if bias_node < 0:
+        bias_node = 0
     n_layers = len(n_nodes) + 1
     # 1st layer
     w_layers = [np.random.normal(0, init_std, (n_nodes[0], n_features))]
     # add hidden layers
     for i in range(1, n_layers - 1):
-        w_layers.append(np.random.normal(0, init_std, (n_nodes[i], n_nodes[i - 1])))
+        w_layers.append(np.random.normal(0, init_std, (n_nodes[i], n_nodes[i - 1] + bias_node)))
     # last layer
-    w_layers.append(np.random.normal(0, init_std, (size_output, n_nodes[-1])))
+    w_layers.append(np.random.normal(0, init_std, (size_output, n_nodes[-1] + bias_node)))
     return w_layers
 
 def UpdateFixedNormal(i, d=1, n=1, Mb=100, mb= -100, rs=0):

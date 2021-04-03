@@ -77,10 +77,10 @@ def calc_likelihood_regression(prediction, # 2D array: inst x (mus + sigs)
     return lik_temp * np.sum(scipy.stats.norm.logpdf(true_values, prediction[:,:ind], prediction[:,ind:]))
 
 def MatrixMultiplication(x1,x2):
-    z1 = np.einsum('nj,ij->ni', x1, x2)
-    # same as:
-    # for i in range(n_samples):
-    # 	print(np.einsum('j,ij->i', x[i], w_in_l1))
+    if x1.shape[1] == x2.shape[1]:
+        z1 = np.einsum('nj,ij->ni', x1, x2)
+    else:
+        z1 = np.einsum('nj,ij,i->ni', x1, x2[:, 1:], x2[:, 0])
     return z1
 
 def MatrixMultiplicationBias(x1,x2):
