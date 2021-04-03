@@ -11,18 +11,20 @@ import numpy as np
 np.set_printoptions(suppress=True, precision=3)
 
 # generate data
-a = np.random.gamma(2,2,1000)
-b = np.random.random(len(a))*a
-x = np.random.uniform(1,4,1000)
-y0 = scipy.stats.gamma.logpdf(x,a,scale=1/b)
-y1 = scipy.stats.gamma.logpdf(x-1,a,scale=1/(a+b)) + 5
-features = np.array([x,a,b]).T
-labels = np.array([y0,y1]).T
-np.savetxt("/Users/dsilvestro/Software/npBNN/example_files/data_features_reg.txt", features)
-np.savetxt("/Users/dsilvestro/Software/npBNN/example_files/data_lab_reg.txt", labels)
+make_up_data = 0
+if make_up_data:
+    a = np.random.gamma(2,2,1000)
+    b = np.random.random(len(a))*a
+    x = np.random.uniform(1,4,1000)
+    y0 = scipy.stats.gamma.logpdf(x,a,scale=1/b)
+    y1 = scipy.stats.gamma.logpdf(x-1,a,scale=1/(a+b)) + 5
+    features = np.array([x,a,b]).T
+    labels = np.array([y0,y1]).T
+    np.savetxt("./example_files/data_features_reg.txt", features)
+    np.savetxt("./example_files/data_lab_reg.txt", labels)
 
-f="/Users/dsilvestro/Software/npBNN/example_files/data_features_reg.txt"
-l="/Users/dsilvestro/Software/npBNN/example_files/data_lab_reg.txt"
+f="./example_files/data_features_reg.txt"
+l="./example_files/data_lab_reg.txt"
 
 
 dat = bn.get_data(f,
@@ -33,16 +35,16 @@ dat = bn.get_data(f,
                   cv=0, # cross validation (1st batch; set to 1,2,... to run on subsequent batches)
                   header=0, # input data has a header
                   from_file=True,
-                  randomize_order=False,
+                  instance_id=0,
+                  randomize_order=True,
                   label_mode="regression")
 
-dat['labels'] = labels[:len(dat['labels']),:]
-dat['test_labels'] = labels[-len(dat['test_labels']):,:]
 
 # set up the BNN model
 bnn_model = bn.npBNN(dat,
                      n_nodes = [32,8],
-                     estimation_mode="regression"
+                     estimation_mode="regression",
+                     p_scale=10
 )
 
 
@@ -50,7 +52,7 @@ bnn_model = bn.npBNN(dat,
 mcmc = bn.MCMC(bnn_model,
                update_ws=[0.025,0.025, 0.05],
                update_f=[0.005,0.005,0.05],
-               n_iteration=250000,
+               n_iteration=5000000,
                sampling_f=100,
                print_f=1000,
                n_post_samples=100,
@@ -79,5 +81,7 @@ plt.axline((0, 0), (1, 1), linewidth=2, color='k')
 fig.show()
 
 
+##
+      
 
 
