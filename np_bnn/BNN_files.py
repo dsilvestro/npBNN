@@ -75,11 +75,14 @@ def get_data(f,l=None,testsize=0.1, batch_training=0,seed=1234, all_class_in_tes
             x = x[indx]
             labels = labels[indx]
 
+        if label_mode == "regression":
+            labels = labels.astype(float)
+            labels_test = labels_test.astype(float)
+
         out_dict = {'data': np.array(x).astype(float), 'labels': labels, 'label_dict': np.unique(tot_labels),
                 'test_data': np.array(x_test).astype(float), 'test_labels': labels_test,
                 'id_data': inst_id_x, 'id_test_data': inst_id_x_test,
                 'file_name': fname, 'feature_names': feature_names}
-
     return out_dict
 
 
@@ -179,7 +182,7 @@ def randomize_data(tot_x, tot_labels, testsize=0.1, all_class_in_testset=1, inst
         x_test = tot_x[indx_test_set, :]
         labels_test = tot_labels[indx_test_set]
         x = np.delete(tot_x, indx_test_set, axis=0)
-        labels = np.delete(tot_labels, indx_test_set)
+        labels = np.delete(tot_labels, indx_test_set, axis=0)
         if len(inst_id):
             inst_id_test = tot_inst_id[indx_test_set]
             inst_id_x = np.delete(tot_inst_id, indx_test_set)
