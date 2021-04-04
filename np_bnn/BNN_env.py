@@ -37,9 +37,13 @@ class npBNN():
             self._n_output_prm = self._size_output
             self._output_act_fun = SoftMax
         elif estimation_mode == "regression":
-            self._size_output = self._labels.shape[1] * 2 # mus, sigs
+            self._size_output = self._labels.shape[1] # mus, sig2 = 1
             self._n_output_prm = self._labels.shape[1]
             self._output_act_fun = RegressTransform
+        elif estimation_mode == "regression-error":
+            self._size_output = self._labels.shape[1] * 2 # mus, sigs
+            self._n_output_prm = self._labels.shape[1]
+            self._output_act_fun = RegressTransformError
         self._init_std = init_std
         try: # see if we have an actual list or single element
             n_nodes = list(n_nodes)
@@ -216,8 +220,10 @@ class MCMC():
 
         if bnn_obj._estimation_mode == "classification":
             self._likelihood_f = calc_likelihood
-        else:
+        elif bnn_obj._estimation_mode == "regression":
             self._likelihood_f = calc_likelihood_regression
+        else:
+            self._likelihood_f = calc_likelihood_regression_error
         if sample_from_prior:
             self._logLik = 0
         else:

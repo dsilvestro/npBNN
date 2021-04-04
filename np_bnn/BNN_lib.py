@@ -73,8 +73,16 @@ def calc_likelihood_regression(prediction, # 2D array: inst x (mus + sigs)
                                true_values, # 2D array: val[inst x n_param
                                _, __,
                                lik_temp=1):
+    return lik_temp * np.sum(scipy.stats.norm.logpdf(true_values, prediction, 1))
+
+
+def calc_likelihood_regression_error(prediction, # 2D array: inst x (mus + sigs)
+                               true_values, # 2D array: val[inst x n_param
+                               _, __,
+                               lik_temp=1):
     ind = true_values.shape[1] #int(prediction.shape[1] / 2)
     return lik_temp * np.sum(scipy.stats.norm.logpdf(true_values, prediction[:,:ind], prediction[:,ind:]))
+
 
 def MatrixMultiplication(x1,x2):
     if x1.shape[1] == x2.shape[1]:
@@ -93,13 +101,15 @@ def SoftMax(z):
     # return ((np.exp(z).T)/np.sum(np.exp(z),axis=1)).T
     return scipy.special.softmax(z, axis=1)
 
-def RegressTransform(z, ind=None):
-    if ind is None:
-        ind = int(z.shape[1]/2)
-    # z[:,ind:] = relu_f(z[:, ind:],0) + 0.01
-    z[:, ind:] = np.exp(z[:, ind:])
+def RegressTransform(z):
     return z
 
+def RegressTransformError(z, ind=None):
+    if ind is None:
+        ind = int(z.shape[1]/2)
+    #z[:,ind:] = relu_f(z[:, ind:],0) + 0.01
+    z[:, ind:] = np.exp(z[:, ind:])
+    return z
 
 def RunHiddenLayer(z0, w01, actFun, layer_n):
     z1 = MatrixMultiplication(z0, w01)
