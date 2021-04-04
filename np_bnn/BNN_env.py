@@ -194,7 +194,7 @@ class MCMC():
     def __init__(self, bnn_obj, update_f=None, update_ws=None,
                  temperature=1, n_iteration=100000, sampling_f=100, print_f=1000, n_post_samples=1000,
                  update_function=UpdateNormal, sample_from_prior=0, run_ID="", init_additional_prob=0,
-                 likelihood_tempering=1, mcmc_id=0, randomize_seed=False):
+                 likelihood_tempering=1, mcmc_id=0, randomize_seed=False, adapt_f=0):
         if update_ws is None:
             update_ws = [0.075] * bnn_obj._n_layers
         if update_f is None:
@@ -255,6 +255,8 @@ class MCMC():
         self._counter = 0
         self._n_post_samples = n_post_samples
         self._accepted_states = 0
+        self._freq_layer_update = np.ones(bnn_obj._n_layers)
+        self._adapt_f = adapt_f
 
     def mh_step(self, bnn_obj, additional_prob=0, return_bnn=False):
         if self._randomize_seed:
@@ -265,6 +267,12 @@ class MCMC():
         tmp = bnn_obj._data + 0
         indicators_prime = bnn_obj._indicators + 0
         
+        if self._current_iteration % 100 == 0:
+            acc_rate = (1 + self._accepted_states) / (1 + self._current_iteration)
+            if acc_rate < self._adapt_f:
+                self._freq_layer_update = self._freq_layer_update * 0.8
+                print(self._freq_layer_update)
+        
         # if trainable prm in activation function
         if bnn_obj._act_fun._trainable:
             prm_tmp, _, h = UpdateNormal1D(bnn_obj._act_fun._acc_prm, d=0.05, n=1, Mb=1, mb=0, rs=self._rs)
@@ -272,13 +280,18 @@ class MCMC():
             additional_prob += np.log(r) * -np.sum(prm_tmp)*r # aka exponential Exp(r)
             hastings += h
             bnn_obj._act_fun.reset_prm(prm_tmp)
-            
+        
+        rr = self._rs.random(bnn_obj._n_layers)
+        # rr[self._rs.randint(0, bnn_obj._n_layers)] = 1 # make sure to update one layer
         for i in range(bnn_obj._n_layers):
-            if np.random.random() > bnn_obj._freq_indicator or i > 0:
-                update, indx, h = self.update_function(bnn_obj._w_layers[i], d=self._update_ws[i], n=self._update_n[i],
-                                                    Mb=bnn_obj._w_bound, mb=-bnn_obj._w_bound, rs=self._rs)
-                w_layers_prime.append(update)
-                hastings += h
+            if rr[i] > bnn_obj._freq_indicator or i > 0:
+                if rr[i] < self._freq_layer_update[i]:
+                    update, indx, h = self.update_function(bnn_obj._w_layers[i], d=self._update_ws[i], n=self._update_n[i],
+                                                           Mb=bnn_obj._w_bound, mb=-bnn_obj._w_bound, rs=self._rs)
+                    w_layers_prime.append(update)
+                    hastings += h
+                else:
+                    w_layers_prime.append(bnn_obj._w_layers[i] + 0)
             else:
                 w_layers_prime.append(bnn_obj._w_layers[i] + 0)
                 indicators_prime = UpdateBinomial(bnn_obj._indicators, self._update_f[3], bnn_obj._indicators.shape)
@@ -296,7 +309,6 @@ class MCMC():
         if self._sample_from_prior:
             logLik_prime = 0
         else:
-            # TODO: expose self._lik_temp as parameter that can be estimated by MCMC
             logLik_prime = self._likelihood_f(y_prime,
                                               bnn_obj._labels,
                                               bnn_obj._sample_id,
