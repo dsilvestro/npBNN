@@ -94,6 +94,30 @@ def UpdateUniform(i, d=0.1, n=1, Mb=100, mb= -100):
 def UpdateBinomial(ind,update_f,shape_out):
     return np.abs(ind - np.random.binomial(1, np.random.random() * update_f, shape_out))
 
+def multiplier_proposal_vector(q, d=1.05, f=1, rs=0):
+    if not rs:
+        rseed = random.randint(1000, 9999)
+        rs = RandomState(MT19937(SeedSequence(rseed)))
+    S = q.shape
+    ff = rs.binomial(1,f,S)
+    u = rs.random(S)
+    l = 2 * np.log(d)
+    m = np.exp(l * (u - .5))
+    m[ff==0] = 1.
+    new_q = q * m
+    U=np.sum(np.log(m))
+    return new_q, 0, U
+
+
+def multiplier_proposal(i, d=1.05):
+    z = i + 0
+    u = np.random.random()
+    l = 2 * np.log(d)
+    m = np.exp(l * (u - .5))
+    z = z * m
+    U = np.log(m)
+    return z, 0, U
+
 
 def GibbsSampleNormStdGammaVector(x,a=2,b=0.1,mu=0):
     Gamma_a = a + len(x)/2.
@@ -129,6 +153,7 @@ def run_mcmc(bnn, mcmc, logger):
         if mcmc._current_iteration % mcmc._print_f == 0 or mcmc._current_iteration == 1:
             acceptance_rate = mcmc._accepted_states / mcmc._current_iteration
             print(mcmc._current_iteration, np.round([mcmc._logLik, mcmc._accuracy, mcmc._test_accuracy, acceptance_rate],3))
+            print(bnn._error_prm)
         # save to file
         if mcmc._current_iteration % mcmc._sampling_f == 0:
             logger.log_sample(bnn,mcmc)

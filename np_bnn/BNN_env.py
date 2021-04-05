@@ -32,6 +32,8 @@ class npBNN():
                 self._test_labels = test_labels
         else:
             self._test_labels = []
+        
+        self._error_prm = []
         if estimation_mode == "classification":
             self._size_output = len(np.unique(self._labels))
             self._n_output_prm = self._size_output
@@ -40,6 +42,7 @@ class npBNN():
             self._size_output = self._labels.shape[1] # mus, sig2 = 1
             self._n_output_prm = self._labels.shape[1]
             self._output_act_fun = RegressTransform
+            self._error_prm = np.ones(self._size_output)
         elif estimation_mode == "regression-error":
             self._size_output = self._labels.shape[1] * 2 # mus, sigs
             self._n_output_prm = self._labels.shape[1]
@@ -186,6 +189,9 @@ class npBNN():
 
     def reset_indicators(self, ind):
         self._indicators = ind
+    
+    def reset_error_prm(self, p):
+        self._error_prm = p
 
     def update_data(self, data_dict):
         self._data = data_dict['data']
@@ -198,7 +204,7 @@ class MCMC():
     def __init__(self, bnn_obj, update_f=None, update_ws=None,
                  temperature=1, n_iteration=100000, sampling_f=100, print_f=1000, n_post_samples=1000,
                  update_function=UpdateNormal, sample_from_prior=0, run_ID="", init_additional_prob=0,
-                 likelihood_tempering=1, mcmc_id=0, randomize_seed=False, adapt_f=0):
+                 likelihood_tempering=1, mcmc_id=0, randomize_seed=False, adapt_f=0, estimate_error=True):
         if update_ws is None:
             update_ws = [0.075] * bnn_obj._n_layers
         if update_f is None:
@@ -231,7 +237,8 @@ class MCMC():
                                               bnn_obj._labels,
                                               bnn_obj._sample_id,
                                               bnn_obj._class_w,
-                                              likelihood_tempering)
+                                              likelihood_tempering,
+                                              bnn_obj._error_prm)
         self._logPrior = bnn_obj.calc_prior() + init_additional_prob
         self._logPost = self._logLik + self._logPrior
         if bnn_obj._estimation_mode == "classification":
@@ -263,6 +270,7 @@ class MCMC():
         self._accepted_states = 0
         self._freq_layer_update = np.ones(bnn_obj._n_layers)
         self._adapt_f = adapt_f
+        self._estimate_error = estimate_error
 
     def mh_step(self, bnn_obj, additional_prob=0, return_bnn=False):
         if self._randomize_seed:
@@ -272,6 +280,7 @@ class MCMC():
         w_layers_prime = []
         tmp = bnn_obj._data + 0
         indicators_prime = bnn_obj._indicators + 0
+        error_prm_tmp = bnn_obj._error_prm
         
         if self._current_iteration % 100 == 0:
             acc_rate = (1 + self._accepted_states) / (1 + self._current_iteration)
@@ -286,7 +295,13 @@ class MCMC():
             additional_prob += np.log(r) * -np.sum(prm_tmp)*r # aka exponential Exp(r)
             hastings += h
             bnn_obj._act_fun.reset_prm(prm_tmp)
-        
+
+        if bnn_obj._estimation_mode == "regression" and self._current_iteration > 20000 and self._estimate_error:
+            error_prm_tmp, _, h = multiplier_proposal_vector(bnn_obj._error_prm, d=1.1, f=0.5, rs=self._rs)
+            r = 1
+            additional_prob += np.log(r) * -np.sum(error_prm_tmp)*r # aka exponential Exp(r)
+            hastings += h
+
         rr = self._rs.random(bnn_obj._n_layers)
         # rr[self._rs.randint(0, bnn_obj._n_layers)] = 1 # make sure to update one layer
         for i in range(bnn_obj._n_layers):
@@ -319,13 +334,16 @@ class MCMC():
                                               bnn_obj._labels,
                                               bnn_obj._sample_id,
                                               bnn_obj._class_w,
-                                              self._lik_temp)
+                                              self._lik_temp,
+                                              error_prm_tmp)
         logPost_prime = logLik_prime + logPrior_prime
         rrr = np.log(self._rs.random())
         if (logPost_prime - self._logPost) * self._temperature + hastings >= rrr:
             # print(logPost_prime, self._logPost)
             bnn_obj.reset_weights(w_layers_prime)
             bnn_obj.reset_indicators(indicators_prime)
+            if bnn_obj._estimation_mode == "regression":
+                bnn_obj.reset_error_prm(error_prm_tmp)
             if bnn_obj._act_fun._trainable:
                 bnn_obj._act_fun.reset_accepted_prm()
             self._logPost = logPost_prime
