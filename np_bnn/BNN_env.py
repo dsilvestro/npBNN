@@ -270,7 +270,11 @@ class MCMC():
         self._accepted_states = 0
         self._freq_layer_update = np.ones(bnn_obj._n_layers)
         self._adapt_f = adapt_f
-        self._estimate_error = estimate_error
+        if estimate_error:
+            # std fixed to 1 for first few iterations
+            self._estimate_error = np.min([20000, 0.1 * self._n_iterations])
+        else:
+            self._estimate_error = self._n_iterations
 
     def mh_step(self, bnn_obj, additional_prob=0, return_bnn=False):
         if self._randomize_seed:
@@ -296,7 +300,7 @@ class MCMC():
             hastings += h
             bnn_obj._act_fun.reset_prm(prm_tmp)
 
-        if bnn_obj._estimation_mode == "regression" and self._current_iteration > 20000 and self._estimate_error:
+        if bnn_obj._estimation_mode == "regression" and self._current_iteration > self._estimate_error:
             error_prm_tmp, _, h = multiplier_proposal_vector(bnn_obj._error_prm, d=1.1, f=0.5, rs=self._rs)
             r = 1
             additional_prob += np.log(r) * -np.sum(error_prm_tmp)*r # aka exponential Exp(r)

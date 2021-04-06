@@ -153,7 +153,8 @@ def run_mcmc(bnn, mcmc, logger):
         if mcmc._current_iteration % mcmc._print_f == 0 or mcmc._current_iteration == 1:
             acceptance_rate = mcmc._accepted_states / mcmc._current_iteration
             print(mcmc._current_iteration, np.round([mcmc._logLik, mcmc._accuracy, mcmc._test_accuracy, acceptance_rate],3))
-            print(bnn._error_prm)
+            if bnn._estimation_mode == "regression":
+                print(bnn._error_prm)
         # save to file
         if mcmc._current_iteration % mcmc._sampling_f == 0:
             logger.log_sample(bnn,mcmc)

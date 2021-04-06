@@ -118,9 +118,16 @@ def init_output_files(bnn_obj, filename="BNN", sample_from_prior=0, outpath="",a
     else:
         w_file_name = None
 
-    head = ["it", "posterior", "likelihood", "prior", "accuracy", "test_accuracy"]
-    for i in range(bnn_obj._n_output_prm):
-        head.append("acc_C%s" % i)
+    head = ["it", "posterior", "likelihood", "prior"]
+    if bnn_obj._estimation_mode == "classification":
+        head = head + ["accuracy", "test_accuracy"]
+        for i in range(bnn_obj._n_output_prm):
+            head.append("acc_C%s" % i)
+    else:
+        head = head + ["MSE", "test_MSE"]
+        for i in range(bnn_obj._n_output_prm):
+            head.append("MSE_prm%s" % i)
+
     for i in range(bnn_obj._n_layers):
         head.append("mean_w%s" % i)
         head.append("std_w%s" % i)
