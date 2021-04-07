@@ -199,7 +199,6 @@ class npBNN():
         self._test_data = data_dict['test_data']
         self._test_labels = data_dict['test_labels']
 
-
 class MCMC():
     def __init__(self, bnn_obj, update_f=None, update_ws=None,
                  temperature=1, n_iteration=100000, sampling_f=100, print_f=1000, n_post_samples=1000,
@@ -443,7 +442,7 @@ class postLogger():
         wlog.writerow(row)
         logfile_IO.flush()
 
-    def log_weights(self, bnn_obj, mcmc_obj, add_prms=None):
+    def log_weights(self, bnn_obj, mcmc_obj, add_prms=None, add_obj=None):
         # print(mcmc_obj._current_iteration, self._counter, len(self._list_post_weights))
         if self._log_all_weights:
             row = [mcmc_obj._current_iteration]
@@ -472,5 +471,8 @@ class postLogger():
 
             self.update_post_weight_samples(post_prm)
             self.control_weight_sample_length(mcmc_obj._n_post_samples)
-
-        SaveObject([bnn_obj,mcmc_obj,self],self._pklfile)
+        if add_obj:
+            SaveObject([bnn_obj,mcmc_obj,self,add_obj],self._pklfile)
+        else:
+            SaveObject([bnn_obj,mcmc_obj,self],self._pklfile)
+        
