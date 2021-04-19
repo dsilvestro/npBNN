@@ -255,11 +255,22 @@ def combine_pkls(files=None, dir=None, tag=""):
     if dir is not None:
         files = glob.glob(os.path.join(dir, "*%s*.pkl" % tag))
         print("Combining files: ", files)
-    comb_pkl = list()
+    i = 0
+    w_list = []
+
+    out_file = os.path.join(os.path.dirname(files[0]), "combine_pkl%s.pkl" % tag)
     for f in files:
-        w = load_obj(f)
-        comb_pkl = comb_pkl + w
-    return comb_pkl
+        if f != out_file:
+            a, b, w = load_obj(f)
+            if i == 0:
+                bnn_obj = a
+                mcmc_obj = b
+                logger_obj = w
+
+            w_list.append(w._post_weight_samples)
+
+    SaveObject([bnn_obj,mcmc_obj,logger_obj],out_file)
+    return out_file
 
 def turn_labels_to_numeric(labels,label_file,save_to_file=False):
     numerical_labels = np.zeros(len(labels)).astype(int)
