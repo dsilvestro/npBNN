@@ -2,8 +2,8 @@ import csv
 import glob
 import os
 import numpy as np
+import pickle
 from .BNN_lib import *
-
 
 # get data
 def get_data(f,l=None,testsize=0.1, batch_training=0,seed=1234, all_class_in_testset=1,
@@ -254,7 +254,7 @@ def merge_dict(d1, d2):
 def combine_pkls(files=None, dir=None, tag=""):
     if dir is not None:
         files = glob.glob(os.path.join(dir, "*%s*.pkl" % tag))
-        print("Combining files: ", files)
+        print("Combining %s files: \n" % len(files), files)
     i = 0
     w_list = []
 
@@ -269,7 +269,9 @@ def combine_pkls(files=None, dir=None, tag=""):
 
             w_list.append(w._post_weight_samples)
 
-    SaveObject([bnn_obj,mcmc_obj,logger_obj],out_file)
+    with open(out_file, 'wb') as output:  # Overwrites any existing file.
+        pickle.dump([bnn_obj,mcmc_obj,logger_obj], output, pickle.HIGHEST_PROTOCOL)
+
     return out_file
 
 def turn_labels_to_numeric(labels,label_file,save_to_file=False):
