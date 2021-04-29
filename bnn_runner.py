@@ -37,13 +37,13 @@ prior = 1 # 0) uniform, 1) normal, 2) Cauchy, 3) Laplace
 p_scale = 1 # std for Normal, scale parameter for Cauchy and Laplace, boundaries for Uniform
 use_class_weight = 0 # set to 1 to use class weights for unbalanced classes
 init_std = 0.1 # st dev of the initial weights
-
+use_bias_node = 3 # 0) no bias node, 1) bias in input layer, 2) bias in input and hidden layers, 3) bias in input/hidden/output
 # set up the BNN model
 bnn_model = bn.npBNN(dat,
                      n_nodes = n_nodes_list,
                      use_class_weights=use_class_weight,
                      actFun=activation_function,
-                     use_bias_node=1,
+                     use_bias_node=use_bias_node,
                      prior_f=prior,
                      p_scale=p_scale,
                      seed=rseed,

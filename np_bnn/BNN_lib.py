@@ -90,13 +90,9 @@ def MatrixMultiplication(x1,x2):
     if x1.shape[1] == x2.shape[1]:
         z1 = np.einsum('nj,ij->ni', x1, x2)
     else:
-        z1 = np.einsum('nj,ij,i->ni', x1, x2[:, 1:], x2[:, 0])
+        z1 = np.einsum('nj,ij->ni', x1, x2[:, 1:])
+        z1 += x2[:, 0].T
     return z1
-
-def MatrixMultiplicationBias(x1,x2):
-    z1 = np.einsum('nj,ij,i->ni', x1, x2[:,1:], x2[:,0])
-    return z1
-
 
 # SoftMax function
 def SoftMax(z):
@@ -289,9 +285,6 @@ def get_posterior_cat_prob(pred_features,
     # load posterior weights
     post_weights = [post_samples[i]['weights'] for i in range(len(post_samples))]
     post_alphas = [post_samples[i]['alphas'] for i in range(len(post_samples))]
-    if n_features < post_weights[0][0].shape[1]:
-        "add bias node"
-        predict_features = np.c_[np.ones(predict_features.shape[0]), predict_features]
     post_cat_probs = []
     for i in range(len(post_weights)):
         actFun_i = actFun
@@ -539,6 +532,8 @@ def get_accuracy_threshold(probs, labels, threshold=0.75):
     labels_supported = labels[indx]
     pred = np.argmax(res_supported, axis=1)
     accuracy = len(pred[pred == labels_supported])/len(pred)
+    # print(accuracy)
+    # print(CalcAccuracy(res_supported,labels_supported))
     dropped_frequency = len(pred)/len(labels)
     cm = CalcConfusionMatrix(res_supported, labels_supported)
     return {'predictions': pred, 'accuracy': accuracy, 'retained_samples': dropped_frequency, 'confusion_matrix': cm}
@@ -547,12 +542,12 @@ def get_accuracy_threshold(probs, labels, threshold=0.75):
 def get_posterior_threshold(pkl_file,target_acc=0.9,post_summary_mode=1,output_file=None):
     # determine the posterior threshold based on given target accuracy
     bnn_obj, mcmc_obj, logger_obj = load_obj(pkl_file)
-    # predict
     post_pr_test = predictBNN(bnn_obj._test_data,
-                                  pickle_file=pkl_file,
-                                  test_labels=bnn_obj._test_labels,
-                                  post_summary_mode=post_summary_mode,
-                                  verbose=0)
+                              pickle_file=pkl_file,
+                              test_labels=bnn_obj._test_labels,
+                              post_summary_mode=post_summary_mode,
+                              verbose=0)
+
     # CALC TRADEOFFS
     res = post_pr_test['post_prob_predictions']
     labels=bnn_obj._test_labels

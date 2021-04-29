@@ -55,13 +55,6 @@ class npBNN():
         self._n_layers = len(n_nodes) + 1
         self._n_nodes = n_nodes
         self._use_bias_node = use_bias_node
-        if use_bias_node:
-            self._data = np.c_[np.ones(self._data.shape[0]), self._data]
-            if len(test_labels) > 0:
-                self._test_data = np.c_[np.ones(self._test_data.shape[0]), self._test_data]
-            else:
-                self._test_data = []
-
         self._n_samples = self._data.shape[0]
         self._n_features = self._data.shape[1]
         # self._sample_id = np.arange(self._n_samples)
@@ -89,7 +82,7 @@ class npBNN():
                                            self._n_features,
                                            self._size_output,
                                            init_std=0.1,
-                                           bias_node=use_bias_node-1)
+                                           bias_node=use_bias_node)
             else:
                 bnn_obj,mcmc_obj,logger_obj = load_obj(pickle_file)
                 post_samples = logger_obj._post_weight_samples
