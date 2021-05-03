@@ -320,7 +320,8 @@ def predictBNN(predict_features,
                instance_id=[],
                pickle_file_prior=0,
                target_acc = None,
-               threshold=0.95,
+               post_cutoff = None, # this is for restricting predictions to only instances exceeding this threshold
+               threshold=0.95, # this is to determine TP and FP
                bf=150,
                post_summary_mode=0,
                fname="",
@@ -344,8 +345,11 @@ def predictBNN(predict_features,
                                                                       actFun=actFun,
                                                                       output_act_fun=output_act_fun)
 
-    if target_acc:
-        posterior_threshold = get_posterior_threshold(pickle_file,target_acc,post_summary_mode)
+    if target_acc or post_cutoff:
+        if target_acc:
+            posterior_threshold = get_posterior_threshold(pickle_file,target_acc,post_summary_mode)
+        elif post_cutoff:
+            posterior_threshold == post_cutoff
         high_pp_indices = np.where(np.max(post_prob_predictions, axis=1) > posterior_threshold)[0]
         post_prob_predictions = turn_low_pp_instances_to_nan(post_prob_predictions,high_pp_indices)
         post_softmax_probs = np.array([turn_low_pp_instances_to_nan(i,high_pp_indices) for i in post_softmax_probs])
