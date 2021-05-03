@@ -349,7 +349,7 @@ def predictBNN(predict_features,
         if target_acc:
             posterior_threshold = get_posterior_threshold(pickle_file,target_acc,post_summary_mode)
         elif post_cutoff:
-            posterior_threshold == post_cutoff
+            posterior_threshold = post_cutoff
         high_pp_indices = np.where(np.max(post_prob_predictions, axis=1) > posterior_threshold)[0]
         post_prob_predictions = turn_low_pp_instances_to_nan(post_prob_predictions,high_pp_indices)
         post_softmax_probs = np.array([turn_low_pp_instances_to_nan(i,high_pp_indices) for i in post_softmax_probs])
