@@ -144,9 +144,9 @@ def CalcLabelAccuracy(y,lab):
 
 def CalcConfusionMatrix(y,lab):
     prediction = np.argmax(y, axis=1)
-    y_actu = pd.Series(lab, name='True')
-    y_pred = pd.Series(prediction, name='Predicted')
-    df_confusion = pd.crosstab(y_actu, y_pred, margins=True, rownames=['True'], colnames=['Predicted'])
+    y_actu = pd.Categorical(lab, categories=np.unique(lab))
+    y_pred = pd.Categorical(prediction, categories=np.unique(lab))
+    df_confusion = pd.crosstab(y_actu, y_pred, margins=True, rownames=['True'], colnames=['Predicted'],dropna=False)
     return df_confusion
 
 def CalcLabelFreq(y):
