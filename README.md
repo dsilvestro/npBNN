@@ -4,7 +4,7 @@ The np_bnn library is a Python implementation of Bayesian neural networks for cl
 To install the np_bnn library you can use:
 
 ```
-python -m pip install https://github.com/dsilvestro/npBNN/archive/v0.1.8.tar.gz
+python -m pip install https://github.com/dsilvestro/npBNN/archive/v0.1.9.tar.gz
 ```
 Note that you may have to use `python3` depending on which version of Python is set as default in your operating system. 
 
