@@ -345,15 +345,6 @@ def predictBNN(predict_features,
                                                                       actFun=actFun,
                                                                       output_act_fun=output_act_fun)
 
-    if target_acc or post_cutoff:
-        if target_acc:
-            posterior_threshold = get_posterior_threshold(pickle_file,target_acc,post_summary_mode)
-        elif post_cutoff:
-            posterior_threshold = post_cutoff
-        high_pp_indices = np.where(np.max(post_prob_predictions, axis=1) > posterior_threshold)[0]
-        post_prob_predictions = turn_low_pp_instances_to_nan(post_prob_predictions,high_pp_indices)
-        post_softmax_probs = np.array([turn_low_pp_instances_to_nan(i,high_pp_indices) for i in post_softmax_probs])
-
     if fname != "":
         fname = fname + "_"
     out_file_post_pr = os.path.join(predictions_outdir, fname + out_name + '_pred_pr.npy')
@@ -378,6 +369,7 @@ def predictBNN(predict_features,
     else:
         mean_accuracy = np.nan
         cm_out = np.nan
+
     if pickle_file_prior:
         prior_samples = load_obj(pickle_file_prior)
         prior_weights = [prior_samples[i]['weights'] for i in range(len(prior_samples))]
@@ -397,6 +389,15 @@ def predictBNN(predict_features,
         if verbose:
             print("True positive rate (BF):", np.mean(TPrate))
             print("False positive rate (BF):", np.mean(FPrate))
+
+    if target_acc or post_cutoff: # only to be used in prediction mode, not to get test acc during training
+        if target_acc:
+            posterior_threshold = get_posterior_threshold(pickle_file,target_acc,post_summary_mode)
+        elif post_cutoff:
+            posterior_threshold = post_cutoff
+        high_pp_indices = np.where(np.max(post_prob_predictions, axis=1) > posterior_threshold)[0]
+        post_prob_predictions = turn_low_pp_instances_to_nan(post_prob_predictions,high_pp_indices)
+        post_softmax_probs = np.array([turn_low_pp_instances_to_nan(i,high_pp_indices) for i in post_softmax_probs])    
 
     if len(instance_id):
         post_prob_predictions_id = np.hstack((instance_id.reshape(len(instance_id), 1),
