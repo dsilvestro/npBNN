@@ -62,7 +62,9 @@ mcmc = bn.MCMC(bnn_model,
                print_f=1000,
                n_post_samples=100,
                sample_from_prior=sample_from_prior,
-               likelihood_tempering=1)
+               likelihood_tempering=1,
+               adapt_f=0.3,
+               adapt_fM=0.6)
 
 
 
