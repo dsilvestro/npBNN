@@ -99,6 +99,9 @@ def SoftMax(z):
     # return ((np.exp(z).T)/np.sum(np.exp(z),axis=1)).T
     return scipy.special.softmax(z, axis=1)
 
+def SoftPLus(z):
+    return np.log(np.exp(z + 1))
+
 def RegressTransform(z):
     return z
 
@@ -106,7 +109,7 @@ def RegressTransformError(z, ind=None):
     if ind is None:
         ind = int(z.shape[1]/2)
     #z[:,ind:] = relu_f(z[:, ind:],0) + 0.01
-    z[:, ind:] = np.exp(z[:, ind:])
+    z[:, ind:] = SoftPLus(z[:, ind:])
     return z
 
 def RunHiddenLayer(z0, w01, actFun, layer_n):
@@ -618,3 +621,38 @@ def sample_from_categorical(posterior_weights=None, post_prob_file=None, verbose
         class_counts[i] = np.bincount(res[:, i].astype(int), minlength=n_classes)
     
     return {'predictions': point_estimates, 'class_counts': class_counts, 'post_predictions': res}
+
+def get_posterior_est(pkl_file):
+    bnn_obj, mcmc_obj, logger_obj = load_obj(pkl_file)
+    post_samples = logger_obj._post_weight_samples
+
+    # load posterior weights
+    post_weights = [post_samples[i]['weights'] for i in range(len(post_samples))]
+    post_alphas = [post_samples[i]['alphas'] for i in range(len(post_samples))]
+    if 'error_prm' in post_samples[0]:
+        post_error = [post_samples[i]['error_prm'] for i in range(len(post_samples))]
+    else:
+        post_error = []
+    actFun = bnn_obj._act_fun
+    output_act_fun = bnn_obj._output_act_fun
+
+    post_est = []
+    post_est_test = []
+    for i in range(len(post_weights)):
+        actFun_i = actFun
+        actFun_i.reset_prm(post_alphas[i])
+        pred = RunPredict(bnn_obj._data, post_weights[i], actFun=actFun_i, output_act_fun=output_act_fun)
+        post_est.append(pred)
+        pred_test = RunPredict(bnn_obj._test_data, post_weights[i], actFun=actFun_i, output_act_fun=output_act_fun)
+        post_est_test.append(pred_test)
+
+    post_est = np.array(post_est)
+    prm_mean = np.mean(post_est,axis=0)[:,:]
+    post_est_test = np.array(post_est_test)
+    prm_mean_test = np.mean(post_est_test,axis=0)[:,:]
+    return {'prm_mean': prm_mean,
+            'post_est': post_est,
+            'prm_mean_test': prm_mean_test,
+            'post_est_test': post_est_test,
+            'error_prm': post_error
+        }
