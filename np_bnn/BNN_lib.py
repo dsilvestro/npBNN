@@ -100,7 +100,7 @@ def SoftMax(z):
     return scipy.special.softmax(z, axis=1)
 
 def SoftPLus(z):
-    return np.log(np.exp(z + 1))
+    return np.log(np.exp(z) + 1)
 
 def RegressTransform(z):
     return z
