@@ -156,8 +156,8 @@ def run_mcmc(bnn, mcmc, logger):
         mcmc.mh_step(bnn)
         # print some stats (iteration number, likelihood, training accuracy, test accuracy
         if mcmc._current_iteration % mcmc._print_f == 0 or mcmc._current_iteration == 1:
-            acceptance_rate = (1+ mcmc._accepted_states) / (1 + mcmc._current_iteration_acc_rate)
-            print(mcmc._current_iteration, np.round([mcmc._logLik, mcmc._accuracy, mcmc._test_accuracy, acceptance_rate],3))
+            acceptance_rate = mcmc._acceptance_rate
+            print(mcmc._current_iteration, np.round([mcmc._logLik, mcmc._accuracy, mcmc._test_accuracy, acceptance_rate],3),flush=True)
             if bnn._estimation_mode == "regression":
                 print(bnn._error_prm)
         # save to file

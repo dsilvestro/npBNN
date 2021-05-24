@@ -216,7 +216,6 @@ class MCMC():
         self._sampling_f = sampling_f
         self._print_f = print_f
         self._current_iteration = 0
-        self._current_iteration_acc_rate = 0
         self._y = RunPredict(bnn_obj._data, bnn_obj._w_layers, bnn_obj._act_fun, bnn_obj._output_act_fun)
 
         if bnn_obj._estimation_mode == "classification":
@@ -256,13 +255,14 @@ class MCMC():
         self.update_function = update_function
         self._sample_from_prior = sample_from_prior
         self._last_accepted = 1
+        self._last_accepted_mem = [self._last_accepted]
+        self._acceptance_rate = 0.
         self._lik_temp = likelihood_tempering
         self._mcmc_id = mcmc_id
         self._randomize_seed = randomize_seed
         self._rs = RandomState(MT19937(SeedSequence(1234)))
         self._counter = 0
         self._n_post_samples = n_post_samples
-        self._accepted_states = 0
         self._freq_layer_update = np.ones(bnn_obj._n_layers)
         self._adapt_f = adapt_f
         self._adapt_fM = adapt_fM
@@ -282,22 +282,16 @@ class MCMC():
         indicators_prime = bnn_obj._indicators + 0
         error_prm_tmp = bnn_obj._error_prm
 
-        if self._current_iteration % 1000 == 0:
-            # reset acc rate
-            self._accepted_states /= 100
-            self._current_iteration_acc_rate /= 100
-
         if self._current_iteration % 100 == 0:
-            acc_rate = (1 + self._accepted_states) / (1 + self._current_iteration_acc_rate)
-            if acc_rate < self._adapt_f:
+            if self._acceptance_rate < self._adapt_f:
                 self._freq_layer_update = self._freq_layer_update * 0.8
-                print(self._freq_layer_update)
-            if acc_rate > self._adapt_fM and np.sum(self._update_n) < bnn_obj._n_params:
+                #print(self._freq_layer_update)
+            if self._acceptance_rate > self._adapt_fM and np.sum(self._update_n) < bnn_obj._n_params:
                 self.reset_update_f( np.exp(np.log(np.array(self._update_f)) * .85))
                 n = [np.max([1, np.round(bnn_obj._w_layers[i].size * self._update_f[i]).astype(int)]) for i in
                           range(bnn_obj._n_layers)]
                 self.reset_update_n(n)
-                print(self._update_n)
+                #print(self._update_n)
         # if self._current_iteration % 100 == 0:
         #         acc_rate = (1 + self._accepted_states) / (1 + self._current_iteration_acc_rate)
         #         if acc_rate > self._adapt_fM:
@@ -378,12 +372,17 @@ class MCMC():
                 self._y_test = []
                 self._test_accuracy = 0
             self._last_accepted = 1
-            self._accepted_states += 1
         else:
             self._last_accepted = 0
 
+        self._last_accepted_mem.append(self._last_accepted)
+        acc_rate = self._last_accepted_mem.count(1)/len(self._last_accepted_mem)
+        self._acceptance_rate = acc_rate
+
+        # make sure the memory never exceeds 100 items:
+        if len(self._last_accepted_mem)>100:
+            self._last_accepted_mem = self._last_accepted_mem[-100:]
         self._current_iteration += 1
-        self._current_iteration_acc_rate += 1
         if return_bnn:
             return bnn_obj, self
 
@@ -456,7 +455,7 @@ class postLogger():
         if bnn_obj._act_fun._trainable:
             row = row + list(bnn_obj._act_fun._acc_prm)
         # row.append(mcmc_obj._accepted_states / mcmc_obj._current_iteration)
-        row.append((1+ mcmc_obj._accepted_states) / (1 + mcmc_obj._current_iteration_acc_rate))
+        row.append(mcmc_obj._acceptance_rate)
         row.append(mcmc_obj._mcmc_id)
         logfile_IO = open(self._logfile, "a")
         wlog = csv.writer(logfile_IO, delimiter='\t')
