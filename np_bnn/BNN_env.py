@@ -282,15 +282,14 @@ class MCMC():
         indicators_prime = bnn_obj._indicators + 0
         error_prm_tmp = bnn_obj._error_prm
 
-        if self._current_iteration % 100 == 0:
-            if self._acceptance_rate < self._adapt_f:
-                self._freq_layer_update = self._freq_layer_update * 0.8
-                #print(self._freq_layer_update)
-            if self._acceptance_rate > self._adapt_fM and np.sum(self._update_n) < bnn_obj._n_params:
-                self.reset_update_f( np.exp(np.log(np.array(self._update_f)) * .85))
-                n = [np.max([1, np.round(bnn_obj._w_layers[i].size * self._update_f[i]).astype(int)]) for i in
-                          range(bnn_obj._n_layers)]
-                self.reset_update_n(n)
+        if self._acceptance_rate < self._adapt_f:
+            self._freq_layer_update = self._freq_layer_update * 0.8
+            #print(self._freq_layer_update)
+        if self._acceptance_rate > self._adapt_fM and np.sum(self._update_n) < bnn_obj._n_params:
+            self.reset_update_f( np.exp(np.log(np.array(self._update_f)) * .85))
+            n = [np.max([1, np.round(bnn_obj._w_layers[i].size * self._update_f[i]).astype(int)]) for i in
+                        range(bnn_obj._n_layers)]
+            self.reset_update_n(n)
                 #print(self._update_n)
         # if self._current_iteration % 100 == 0:
         #         acc_rate = (1 + self._accepted_states) / (1 + self._current_iteration_acc_rate)
@@ -376,7 +375,7 @@ class MCMC():
             self._last_accepted = 0
 
         self._last_accepted_mem.append(self._last_accepted)
-        acc_rate = self._last_accepted_mem.count(1)/len(self._last_accepted_mem)
+        acc_rate = np.mean(self._last_accepted_mem)
         self._acceptance_rate = acc_rate
 
         # make sure the memory never exceeds 100 items:
