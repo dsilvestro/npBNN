@@ -84,6 +84,22 @@ sns.regplot(x=(dat['test_labels'][:,1].flatten()),y=(mcmc._y_test[:,1]))
 plt.axline((0, 0), (1, 1), linewidth=2, color='k')
 fig.show()
 
+#### run predict
+bnn_obj, mcmc_obj, logger_obj = bn.load_obj(pickle_file)
+post_samples = logger_obj._post_weight_samples
+
+# load posterior weights
+post_weights = [post_samples[i]['weights'] for i in range(len(post_samples))]
+post_alphas = [post_samples[i]['alphas'] for i in range(len(post_samples))]
+actFun = bnn_obj._act_fun
+output_act_fun = bnn_obj._output_act_fun
+
+post_cat_probs = []
+for i in range(len(post_weights)):
+    actFun_i = actFun
+    actFun_i.reset_prm(post_alphas[i])
+    pred = bn.RunPredict(bnn_obj._data, post_weights[i], actFun=actFun_i, output_act_fun=output_act_fun)
+    post_cat_probs.append(pred)
 
 ##
 
