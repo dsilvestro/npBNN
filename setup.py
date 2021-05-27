@@ -23,7 +23,7 @@ with open("requirements.txt", "r", encoding="utf-8") as fh:
 
 setuptools.setup(
     name="npBNN",
-    version="0.1.10",
+    version="0.1.12",
     author="Daniele Silvestro and Tobias Andermann",
     description="Bayesian neural networks using Numpy and Scipy",
     long_description=long_description,
