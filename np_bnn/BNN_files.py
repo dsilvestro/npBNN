@@ -77,7 +77,8 @@ def get_data(f,l=None,testsize=0.1, batch_training=0,seed=1234, all_class_in_tes
 
         if label_mode == "regression":
             labels = labels.astype(float)
-            labels_test = labels_test.astype(float)
+            if testsize:
+                labels_test = labels_test.astype(float)
 
         out_dict = {'data': np.array(x).astype(float), 'labels': labels, 'label_dict': np.unique(tot_labels),
                 'test_data': np.array(x_test).astype(float), 'test_labels': labels_test,
