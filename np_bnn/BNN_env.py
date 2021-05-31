@@ -1,3 +1,4 @@
+import numpy as np
 import scipy.stats
 from numpy.random import MT19937
 
@@ -209,8 +210,8 @@ class MCMC():
             self._runID = run_ID
         self._update_f = update_f
         self._update_ws = [np.ones(bnn_obj._w_layers[i].shape) * update_ws[i] for i in range(bnn_obj._n_layers)]
-        self._update_n = [np.max([1, np.round(bnn_obj._w_layers[i].size * update_f[i]).astype(int)]) for i in
-                          range(bnn_obj._n_layers)]
+        self._update_n = np.array([np.max([1, np.round(bnn_obj._w_layers[i].size * update_f[i]).astype(int)]) for i in
+                          range(bnn_obj._n_layers)])
         self._temperature = temperature
         self._n_iterations = n_iteration
         self._sampling_f = sampling_f
@@ -266,6 +267,7 @@ class MCMC():
         self._freq_layer_update = np.ones(bnn_obj._n_layers)
         self._adapt_f = adapt_f
         self._adapt_fM = adapt_fM
+        self._max_n = np.array([bnn_obj._w_layers[i].size for i in range(bnn_obj._n_layers)]).astype(int)
         if estimate_error:
             # std fixed to 1 for first few iterations
             self._estimate_error = np.min([20000, 0.1 * self._n_iterations])
@@ -288,16 +290,12 @@ class MCMC():
                 #print(self._freq_layer_update)
             if self._acceptance_rate > self._adapt_fM and np.sum(self._update_n) < bnn_obj._n_params:
                 self.reset_update_f( np.exp(np.log(np.array(self._update_f)) * .85))
-                n = [np.max([1, np.round(bnn_obj._w_layers[i].size * self._update_f[i]).astype(int)]) for i in
-                            range(bnn_obj._n_layers)]
+                n = (self._max_n * (self._update_f)).astype(int)
+                n[n < 1] = 1
                 self.reset_update_n(n)
-                #print(self._update_n)
-        # if self._current_iteration % 100 == 0:
-        #         acc_rate = (1 + self._accepted_states) / (1 + self._current_iteration_acc_rate)
-        #         if acc_rate > self._adapt_fM:
-        #             self.reset_update_ws([i*1.2 for i in self._update_ws])
-        #             print(self._update_ws[0][0])
-
+                self.reset_update_ws([i * 1.2 for i in self._update_ws])
+                print(self._update_n, self._update_ws[0][0][0], self._freq_layer_update, self._update_f)
+  
         # if trainable prm in activation function
         if bnn_obj._act_fun._trainable:
             prm_tmp, _, h = UpdateNormal1D(bnn_obj._act_fun._acc_prm, d=0.05, n=1, Mb=1, mb=0, rs=self._rs)
@@ -313,9 +311,10 @@ class MCMC():
             hastings += h
 
         rr = self._rs.random(bnn_obj._n_layers)
+        rr[np.argmin(rr)] = 0 # make sure one layer is always updated
         # rr[self._rs.randint(0, bnn_obj._n_layers)] = 1 # make sure to update one layer
         for i in range(bnn_obj._n_layers):
-            if rr[i] > bnn_obj._freq_indicator or i > 0:
+            if rr[i] >= bnn_obj._freq_indicator or i > 0:
                 if rr[i] < self._freq_layer_update[i]:
                     update, indx, h = self.update_function(bnn_obj._w_layers[i], d=self._update_ws[i], n=self._update_n[i],
                                                            Mb=bnn_obj._w_bound, mb=-bnn_obj._w_bound, rs=self._rs)
