@@ -208,7 +208,7 @@ class MCMC():
             self._runID = bnn_obj._seed
         else:
             self._runID = run_ID
-        self._update_f = update_f
+        self._update_f = update_f[0:bnn_obj._n_layers]
         self._update_ws = [np.ones(bnn_obj._w_layers[i].shape) * update_ws[i] for i in range(bnn_obj._n_layers)]
         self._update_n = np.array([np.max([1, np.round(bnn_obj._w_layers[i].size * update_f[i]).astype(int)]) for i in
                           range(bnn_obj._n_layers)])

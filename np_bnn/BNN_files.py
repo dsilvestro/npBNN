@@ -195,8 +195,6 @@ def randomize_data(tot_x, tot_labels, testsize=0.1, all_class_in_testset=1, inst
             inst_id_test = tot_inst_id[indx_test_set]
             inst_id_x = np.delete(tot_inst_id, indx_test_set)
         print("test set:", indx_test_set)
-        print(x_test.shape, x.shape)
-
 
     elif all_class_in_testset and testsize:
         test_set_ind = []
