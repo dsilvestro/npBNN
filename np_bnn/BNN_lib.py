@@ -429,7 +429,7 @@ def feature_importance(input_features,
                        feature_blocks=dict(),
                        write_to_file=True, 
                        predictions_outdir='',
-                       unlink_features_within_block=False,
+                       unlink_features_within_block=True,
                        actFun=None,
                        output_act_fun=None):
 
@@ -501,7 +501,7 @@ def feature_importance(input_features,
             os.makedirs(predictions_outdir)
         if fname_stem != "":
             fname_stem = fname_stem + "_"
-        feature_importance_df_filename = os.path.join(predictions_outdir, fname_stem + '_feature_importance.txt')
+        feature_importance_df_filename = os.path.join(predictions_outdir, fname_stem + 'feature_importance.txt')
         feature_importance_df_sorted.to_csv(feature_importance_df_filename,sep='\t',index=False,header=True,float_format='%.6f')
         print("Output saved in: %s" % feature_importance_df_filename)
     return feature_importance_df_sorted
