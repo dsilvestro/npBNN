@@ -267,6 +267,7 @@ class MCMC():
         self._freq_layer_update = np.ones(bnn_obj._n_layers)
         self._adapt_f = adapt_f
         self._adapt_fM = adapt_fM
+        self._adapt_stop = int(self._n_iterations * 0.05)
         self._max_n = np.array([bnn_obj._w_layers[i].size for i in range(bnn_obj._n_layers)]).astype(int)
         if estimate_error:
             # std fixed to 1 for first few iterations
@@ -284,17 +285,26 @@ class MCMC():
         indicators_prime = bnn_obj._indicators + 0
         error_prm_tmp = bnn_obj._error_prm
 
-        if self._current_iteration % 100 == 0:
+        if self._current_iteration % 1000 == 0 and self._current_iteration < self._adapt_stop:
             if self._acceptance_rate < self._adapt_f:
                 self._freq_layer_update = self._freq_layer_update * 0.8
                 #print(self._freq_layer_update)
+                self.reset_update_f( np.array(self._update_f) * .85)
+                n = (self._max_n * (self._update_f)).astype(int)
+                n[n < 1] = 1
+                self.reset_update_n(n)
+                self.reset_update_ws([i * 0.9 for i in self._update_ws])
+                print(self._acceptance_rate, self._update_n, self._update_ws[0][0][0], self._freq_layer_update, self._update_f)
+
+
+
             if self._acceptance_rate > self._adapt_fM and np.sum(self._update_n) < bnn_obj._n_params:
                 self.reset_update_f( np.exp(np.log(np.array(self._update_f)) * .85))
                 n = (self._max_n * (self._update_f)).astype(int)
                 n[n < 1] = 1
                 self.reset_update_n(n)
                 self.reset_update_ws([i * 1.2 for i in self._update_ws])
-                print(self._update_n, self._update_ws[0][0][0], self._freq_layer_update, self._update_f)
+                print(self._acceptance_rate, self._update_n, self._update_ws[0][0][0], self._freq_layer_update, self._update_f)
   
         # if trainable prm in activation function
         if bnn_obj._act_fun._trainable:
