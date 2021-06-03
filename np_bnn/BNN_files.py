@@ -51,7 +51,7 @@ def get_data(f,l=None,testsize=0.1, batch_training=0,seed=1234, all_class_in_tes
     else:
         try:
                 l = pd.DataFrame(l)
-                tot_labels = l.values.astype(str) # if l already is a dataframe
+                tot_labels = l.values.astype(str).flatten()  # if l already is a dataframe
         except:
                 tot_labels = np.loadtxt(l,skiprows=header,dtype=str)
 
