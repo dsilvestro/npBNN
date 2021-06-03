@@ -446,7 +446,7 @@ def feature_importance(input_features,
             feature_block_names.append(block_name)
     else:
         selected_features = [[i] for i in feature_indices]
-        feature_block_names = [[i] for i in feature_names]
+        feature_block_names = [i for i in feature_names]
     # get accuracy with all features
     if weights_pkl:
         bnn_obj,mcmc_obj,logger_obj = load_obj(weights_pkl)
