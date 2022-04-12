@@ -1,4 +1,4 @@
-__version__ = '0.1.12'
+__version__ = '0.1.13'
 __citation__ = "Silvestro D, Andermann T. (2020). \
 Prior choice affects ability of Bayesian neural networks to identify unknowns. \
 arXiv:2005.04987. "

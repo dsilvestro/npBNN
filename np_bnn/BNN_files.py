@@ -50,13 +50,16 @@ def get_data(f,l=None,testsize=0.1, batch_training=0,seed=1234, all_class_in_tes
                 'file_name': fname, 'feature_names': feature_names}
     else:
         try:
-                l = pd.DataFrame(l)
+            l = pd.DataFrame(l)
+            if instance_id:
+                tot_labels = l.values[:, 1]
+            else:
                 tot_labels = l.values.astype(str).flatten()  # if l already is a dataframe
         except:
-                tot_labels = np.loadtxt(l,skiprows=header,dtype=str)
+            tot_labels = np.loadtxt(l,skiprows=header,dtype=str)
 
-        if instance_id:
-            tot_labels = tot_labels[:, 1]
+            if instance_id:
+                tot_labels = tot_labels[:, 1]
 
         if label_mode == "classification":
             tot_labels_numeric = turn_labels_to_numeric(tot_labels, l)

@@ -28,6 +28,9 @@ def swish_f(z, _):
     z = z * (1 + np.exp(-z))**(-1)
     return z
 
+def tanh_f(z, _):
+    return np.tanh(z)
+
 class ActFun():
     def __init__(self, fun='ReLU', prm=np.zeros(1), trainable=False):
         self._prm = prm
@@ -40,6 +43,8 @@ class ActFun():
             self.activate = leaky_relu_f
         if fun == "swish":
             self.activate = swish_f
+        if fun == "tanh":
+            self.activate = tanh_f
 
     def eval(self, z, layer_n):
         if self._function == "genReLU":

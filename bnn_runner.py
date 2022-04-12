@@ -70,7 +70,9 @@ mcmc = bn.MCMC(bnn_model,
 
 # initialize output files
 out_file_name = "BNN_cv%s" % cross_validation_batch
-logger = bn.postLogger(bnn_model, filename=out_file_name, log_all_weights=0)
+logger = bn.postLogger(bnn_model,
+                       filename=out_file_name,
+                       log_all_weights=0)
 
 # run MCMC
 bn.run_mcmc(bnn_model, mcmc, logger)
