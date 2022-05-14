@@ -67,6 +67,7 @@ class npBNN():
         self._p_scale = p_scale
         self._prior_ind1 = prior_ind1
         self._estimation_mode = estimation_mode
+        self._mask = None
 
         if use_class_weights:
             class_counts = np.unique(self._labels, return_counts=True)[1]
@@ -193,6 +194,11 @@ class npBNN():
         self._labels = data_dict['labels']
         self._test_data = data_dict['test_data']
         self._test_labels = data_dict['test_labels']
+
+    def apply_mask(self, m=None):
+        if m is not None:
+            self._mask = m
+        self._w_layers = [self._w_layers[i] * self._mask[i] for i in range(self._n_layers)]
 
 class MCMC():
     def __init__(self, bnn_obj, update_f=None, update_ws=None,
@@ -335,6 +341,8 @@ class MCMC():
             else:
                 w_layers_prime.append(bnn_obj._w_layers[i] + 0)
                 indicators_prime = UpdateBinomial(bnn_obj._indicators, self._update_f[3], bnn_obj._indicators.shape)
+            if bnn_obj._mask is not None:
+                w_layers_prime[i] *= bnn_obj._mask[i]
             if i == 0:
                 w_layers_prime_temp = w_layers_prime[i] * indicators_prime
             else:

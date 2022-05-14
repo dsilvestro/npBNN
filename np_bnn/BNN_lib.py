@@ -15,6 +15,40 @@ import os
 # if alpha < 1 and non trainable: leaky ReLU (https://ai.stanford.edu/~amaas/papers/relu_hybrid_icml2013_final.pdf)
 # if trainable: parameteric ReLU (https://arxiv.org/pdf/1502.01852.pdf)
 
+def create_mask(w_layers, indx_features_list, nodes_per_feature_list):
+    m_layers = []
+    for w in w_layers:
+        # w = np.random.random((9,3))
+        # indx_features = [0, 1, 2]
+        # nodes_per_feature = [4, 3, 2]
+        # indx_features = [0, 0, 2]
+        # nodes_per_feature = [5, 4]
+        indx_features = indx_features_list[len(m_layers)]
+        nodes_per_feature = nodes_per_feature_list[len(m_layers)]
+        if len(indx_features) == 0:
+            # fully connect
+            m = np.ones(w.shape)
+        else:
+            m = np.zeros(w.shape)
+            max_indx_rows = 0
+            j = 0
+            for i in range(len(indx_features)):
+                if i > 0:
+                    if indx_features[i] != indx_features[i - 1]:
+                        j += 1
+                        indx_rows = np.arange(nodes_per_feature[j]) + max_indx_rows
+                else:
+                    indx_rows = np.arange(nodes_per_feature[j])
+                indx_cols = np.repeat(i, nodes_per_feature[j])
+                m[indx_rows, indx_cols] = 1
+                # indx_cols2 = np.repeat(indx_features[i], nodes_per_feature[j])
+                # m[indx_rows, indx_cols2] = 1
+                max_indx_rows = np.max(indx_rows) + 1
+
+        m_layers.append(m)
+    return m_layers
+
+
 def relu_f(z, _):
     z[z < 0] = 0
     return z
