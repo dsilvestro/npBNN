@@ -27,7 +27,7 @@ dat = bn.get_data(f,l,
 # set up model architecture and priors
 n_nodes_list = [5, 5] # 2 hidden layers with 5 nodes each
 # default ReLU:
-activation_function = bn.ActFun(fun="ReLU")
+activation_function = bn.ActFun(fun="tanh")
 # to use a leaky ReLU (set trainable=True for generalized ReLU):
 # alphas = np.zeros(len(n_nodes_list)) + 0.01
 # activation_function = bn.ActFun(fun="genReLU", prm=alphas, trainable=False)
