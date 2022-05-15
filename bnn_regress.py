@@ -42,11 +42,11 @@ dat = bn.get_data(f,
 
 # set up the BNN model
 bnn_model = bn.npBNN(dat,
-                     n_nodes = [32,8],
+                     n_nodes = [6,2],
                      estimation_mode="regression",
+                     actFun = bn.ActFun(fun="tanh"),
                      p_scale=1,
-                     use_bias_node=2
-)
+                     use_bias_node=0)
 
 
 # set up the MCMC environment
@@ -66,7 +66,7 @@ print(mcmc._update_n)
 
 mcmc._accuracy_lab_f(mcmc._y, bnn_model._labels)
 # initialize output files
-logger = bn.postLogger(bnn_model, filename="err_est", log_all_weights=0)
+logger = bn.postLogger(bnn_model, filename="err_est_MASK", log_all_weights=0)
 
 # run MCMC
 bn.run_mcmc(bnn_model, mcmc, logger)
@@ -85,7 +85,7 @@ plt.axline((0, 0), (1, 1), linewidth=2, color='k')
 fig.show()
 
 #### run predict
-bnn_obj, mcmc_obj, logger_obj = bn.load_obj(pickle_file)
+bnn_obj, mcmc_obj, logger_obj = bn.load_obj(logger._pklfile)
 post_samples = logger_obj._post_weight_samples
 
 # load posterior weights
@@ -101,51 +101,36 @@ for i in range(len(post_weights)):
     pred = bn.RunPredict(bnn_obj._data, post_weights[i], actFun=actFun_i, output_act_fun=output_act_fun)
     post_cat_probs.append(pred)
 
-##
-
-# TF regress
-import tensorflow as tf
-from tensorflow import keras
-from tensorflow.keras import layers
-
-def build_model():
-    model = keras.Sequential([
-        layers.Dense(100, activation='relu', input_shape=[dat['data'].shape[1]]),
-        layers.Dense(60, activation='relu'),
-        layers.Dense(8, activation='relu',use_bias=False),
-        layers.Dense(2)
-    ])
-    optimizer = tf.keras.optimizers.RMSprop(0.001)
-    model.compile(loss='mse',
-                  optimizer=optimizer,
-                  metrics=['mae', 'mse'])
-    return model
 
 
-model = build_model()
-model.summary()
+# Build sparse NNs
+bnn_model = bn.npBNN(dat,
+                     n_nodes = [6,2],
+                     estimation_mode="regression",
+                     actFun = bn.ActFun(fun="tanh"),
+                     p_scale=1,
+                     use_bias_node=-1) # bias node on last layer
 
-EPOCHS = 1000
+"""
+Create network with sparse first layer. Each feature is connected to 2 nodes.
+Second and third layers are fully connected
+"""
+m = bn.create_mask(bnn_model._w_layers,
+                   indx_input_list=[[0, 1, 2], [], []],
+                   nodes_per_feature_list=[[2, 2, 2], [], []])
 
-# The patience parameter is the amount of epochs to check for improvement
-early_stop = keras.callbacks.EarlyStopping(monitor='val_loss', patience=10)
+bnn_model.apply_mask(m)
 
-early_history = model.fit(dat['data'], dat['labels'],
-                          epochs=EPOCHS, validation_split=0.1, verbose=1,
-                          callbacks=[early_stop])
+bnn_model = bn.npBNN(dat,
+                     n_nodes = [9,6],
+                     estimation_mode="regression",
+                     p_scale=1,
+                     use_bias_node=-1
+)
 
-y_train = model.predict(dat['data'], verbose=2)
-y_test = model.predict(dat['test_data'], verbose=2)
-import seaborn as sns
-import matplotlib.pyplot as plt
-
-fig = plt.figure(figsize=(5, 5))
-sns.regplot(x=(dat['labels'][:,0].flatten()), y=y_train[:,0].flatten())
-sns.regplot(x=(dat['test_labels'][:,0].flatten()), y=y_test[:,0].flatten())
-sns.regplot(x=(dat['labels'][:,1].flatten()), y=y_train[:,1].flatten())
-sns.regplot(x=(dat['test_labels'][:,1].flatten()), y=y_test[:,1].flatten())
-plt.axline((0, 0), (1, 1), linewidth=2, color='k')
-fig.show()
-
+m = bn.create_mask(bnn_model._w_layers,
+                   indx_input_list=[[0, 1, 2], [0, 0, 0, 1, 1, 1, 2, 2, 2], []],
+                   nodes_per_feature_list=[[3, 3, 3], [2, 2, 2], []])
 
 
+bnn_model.apply_mask(m)

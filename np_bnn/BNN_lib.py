@@ -15,7 +15,7 @@ import os
 # if alpha < 1 and non trainable: leaky ReLU (https://ai.stanford.edu/~amaas/papers/relu_hybrid_icml2013_final.pdf)
 # if trainable: parameteric ReLU (https://arxiv.org/pdf/1502.01852.pdf)
 
-def create_mask(w_layers, indx_features_list, nodes_per_feature_list):
+def create_mask(w_layers, indx_input_list, nodes_per_feature_list):
     m_layers = []
     for w in w_layers:
         # w = np.random.random((9,3))
@@ -23,7 +23,7 @@ def create_mask(w_layers, indx_features_list, nodes_per_feature_list):
         # nodes_per_feature = [4, 3, 2]
         # indx_features = [0, 0, 2]
         # nodes_per_feature = [5, 4]
-        indx_features = indx_features_list[len(m_layers)]
+        indx_features = indx_input_list[len(m_layers)]
         nodes_per_feature = nodes_per_feature_list[len(m_layers)]
         if len(indx_features) == 0:
             # fully connect

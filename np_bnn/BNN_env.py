@@ -199,6 +199,12 @@ class npBNN():
         if m is not None:
             self._mask = m
         self._w_layers = [self._w_layers[i] * self._mask[i] for i in range(self._n_layers)]
+        n_params = np.sum(np.array([np.size(i[i !=0]) for i in self._w_layers]))
+        if self._act_fun._trainable:
+            n_params += self._n_layers
+        print("N. of parameters:", n_params)
+        for w in self._w_layers: print(w.shape)
+
 
 class MCMC():
     def __init__(self, bnn_obj, update_f=None, update_ws=None,
