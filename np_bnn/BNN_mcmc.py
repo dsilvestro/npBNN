@@ -15,7 +15,7 @@ def init_weight_prm(n_nodes, n_features, size_output, init_std=0.1, bias_node=0)
     if bias_node >= 2:
         bn2 = 1
     n_layers = len(n_nodes) + 1
-    if bias_node == 3:
+    if bias_node == 3 or bias_node == -1:
         bn3 = 1
     # 1st layer
     w_layers = [np.random.normal(0, init_std, (n_nodes[0], n_features + bn))]
