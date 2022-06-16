@@ -7,9 +7,6 @@ import scipy.stats
 rseed = 1234
 np.random.seed(rseed)
 
-import numpy as np
-np.set_printoptions(suppress=True, precision=3)
-
 # generate data
 make_up_data = 0
 if make_up_data:
@@ -102,35 +99,3 @@ for i in range(len(post_weights)):
     post_cat_probs.append(pred)
 
 
-
-# Build sparse NNs
-bnn_model = bn.npBNN(dat,
-                     n_nodes = [6,2],
-                     estimation_mode="regression",
-                     actFun = bn.ActFun(fun="tanh"),
-                     p_scale=1,
-                     use_bias_node=-1) # bias node on last layer
-
-"""
-Create network with sparse first layer. Each feature is connected to 2 nodes.
-Second and third layers are fully connected
-"""
-m = bn.create_mask(bnn_model._w_layers,
-                   indx_input_list=[[0, 1, 2], [], []],
-                   nodes_per_feature_list=[[2, 2, 2], [], []])
-
-bnn_model.apply_mask(m)
-
-bnn_model = bn.npBNN(dat,
-                     n_nodes = [9,6],
-                     estimation_mode="regression",
-                     p_scale=1,
-                     use_bias_node=-1
-)
-
-m = bn.create_mask(bnn_model._w_layers,
-                   indx_input_list=[[0, 1, 2], [0, 0, 0, 1, 1, 1, 2, 2, 2], []],
-                   nodes_per_feature_list=[[3, 3, 3], [2, 2, 2], []])
-
-
-bnn_model.apply_mask(m)

@@ -37,7 +37,7 @@ prior = 1 # 0) uniform, 1) normal, 2) Cauchy, 3) Laplace
 p_scale = 1 # std for Normal, scale parameter for Cauchy and Laplace, boundaries for Uniform
 use_class_weight = 0 # set to 1 to use class weights for unbalanced classes
 init_std = 0.1 # st dev of the initial weights
-use_bias_node = 3 # 0) no bias node, 1) bias in input layer, 2) bias in input and hidden layers, 3) bias in input/hidden/output
+use_bias_node = -1 # 0) no bias node, 1) bias in input layer, 2) bias in input and hidden layers, 3) bias in input/hidden/last, -1) bias in last layer
 # set up the BNN model
 bnn_model = bn.npBNN(dat,
                      n_nodes = n_nodes_list,
@@ -56,15 +56,14 @@ sample_from_prior = 0 # set to 1 to run an MCMC sampling the parameters from the
 mcmc = bn.MCMC(bnn_model,
                update_f=[0.05, 0.05, 0.07],
                update_ws=[0.075, 0.075, 0.075],
-               temperature = 1,
                n_iteration=10000,
                sampling_f=10,
                print_f=1000,
                n_post_samples=100,
                sample_from_prior=sample_from_prior,
-               likelihood_tempering=1,
-               adapt_f=0.3,
-               adapt_fM=0.6)
+               adapt_f=0.3, # target acceptance pribability (min)
+               adapt_fM=0.6 # target acceptance pribability (max)
+               )
 
 
 
@@ -86,20 +85,9 @@ post_pr_test = bn.predictBNN(dat['test_data'],
                              fname=dat['file_name'],
                              post_summary_mode=0)
 
-post_pr_test['confusion_matrix']
+print(post_pr_test['confusion_matrix'])
 
-# determine feature importance with test data
-feature_importance = bn.feature_importance(dat['test_data'],
-                                           weights_pkl=logger._pklfile,
-                                           true_labels=dat['test_labels'],
-                                           fname_stem=dat['file_name'],
-                                           feature_names=dat['feature_names'],
-                                           n_permutations=100,
-                                           feature_blocks = [[0,1,2,3,4,5,6,7],[8,9,10],[11,12,13,14,15,16,17,18,19,20]],
-                                           unlink_features_within_block = True)
-
-
-# train+test data
+# retrain on train+test data
 dat_all = bn.get_data(f,l,
                       testsize=0, # no test set
                       header=1, # input data has a header
@@ -111,6 +99,8 @@ post_pr_all = bn.predictBNN(dat_all['data'],
                             instance_id=dat_all['id_data'],
                             fname="all_data")
 
+
+
 # predict new unlabeled data
 new_dat = bn.get_data(f="./example_files/unlabeled_data.txt",
                       header=1, # input data has a header
@@ -120,6 +110,8 @@ post_pr_new = bn.predictBNN(new_dat['data'],
                             pickle_file=logger._pklfile,
                             instance_id=new_dat['id_data'],
                             fname=new_dat['file_name'])
+
+
 
 
 # ADDITIONAL OPTIONS
@@ -145,5 +137,13 @@ mcmc = bn.MCMC(bnn_model,
                print_f=1000,
                n_post_samples=100)
 
-# bn.run_mcmc(bnn_model, mcmc, logger)
+# determine feature importance with test data
+feature_importance = bn.feature_importance(dat['test_data'],
+                                           weights_pkl=logger._pklfile,
+                                           true_labels=dat['test_labels'],
+                                           fname_stem=dat['file_name'],
+                                           feature_names=dat['feature_names'],
+                                           n_permutations=100,
+                                           feature_blocks = [[0,1,2,3,4,5,6,7],[8,9,10],[11,12,13,14,15,16,17,18,19,20]],
+                                           unlink_features_within_block = True)
 
