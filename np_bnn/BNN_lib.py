@@ -477,15 +477,21 @@ def feature_importance(input_features,
     # if no names are provided, name them by index
     if len(feature_names) == 0:
         feature_names = feature_indices.astype(str)
-    if len(feature_blocks.keys()) > 0:
-        selected_features = []
-        feature_block_names = []
-        for block_name, block_indices in feature_blocks.items():
-            selected_features.append(block_indices)
-            feature_block_names.append(block_name)
+    if type(feature_blocks) is dict:
+        if len(feature_blocks.keys()) > 0:
+            selected_features = []
+            feature_block_names = []
+            for block_name, block_indices in feature_blocks.items():
+                selected_features.append(block_indices)
+                feature_block_names.append(block_name)
+        else:
+            selected_features = [[i] for i in feature_indices]
+            feature_block_names = [i for i in feature_names]
     else:
-        selected_features = [[i] for i in feature_indices]
-        feature_block_names = [i for i in feature_names]
+        # if a list of lists is provided
+        selected_features = feature_blocks
+        feature_block_names = ['block_' + str(i) for i in range(len(feature_blocks))]
+
     # get accuracy with all features
     if weights_pkl:
         bnn_obj,mcmc_obj,logger_obj = load_obj(weights_pkl)
