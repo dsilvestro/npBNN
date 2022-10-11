@@ -15,9 +15,9 @@ def get_data(f,l=None,testsize=0.1, batch_training=0,seed=1234, all_class_in_tes
         fname = os.path.splitext(os.path.basename(f))[0]
         try:
             tot_x = np.load(f)
-        except(ValueError):
+        except:
             if not instance_id:
-                tot_x = np.loadtxt(f)
+                tot_x = np.loadtxt(f, skiprows=header)
             else:
                 tmp = np.genfromtxt(f, skip_header=header, dtype=str)
                 tot_x = tmp[:,1:].astype(float)
@@ -64,7 +64,10 @@ def get_data(f,l=None,testsize=0.1, batch_training=0,seed=1234, all_class_in_tes
         if label_mode == "classification":
             tot_labels_numeric = turn_labels_to_numeric(tot_labels, l)
         else:
-            tot_labels_numeric = tot_labels
+            if len(tot_labels.shape) == 1:
+                tot_labels_numeric = tot_labels.reshape((tot_labels.shape[0], 1))
+            else:
+                tot_labels_numeric = tot_labels
         x, labels, x_test, labels_test, inst_id_x, inst_id_x_test = randomize_data(tot_x, tot_labels_numeric,
                                                                                    testsize=testsize,
                                                                                    all_class_in_testset=all_class_in_testset,

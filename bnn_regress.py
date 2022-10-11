@@ -30,7 +30,7 @@ dat = bn.get_data(f,
                   testsize=0.1, # 10% test set
                   all_class_in_testset=0,
                   cv=0, # cross validation (1st batch; set to 1,2,... to run on subsequent batches)
-                  header=0, # input data has a header
+                  header=True, # input data has a header
                   from_file=True,
                   instance_id=0,
                   randomize_order=True,
@@ -73,12 +73,13 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 fig = plt.figure(figsize=(5, 5))
 # sns.regplot(x=dat['labels'][:,0].flatten(),y=mcmc._y[:,0])
-sns.regplot(x=(dat['labels'][:,0].flatten()),y=(mcmc._y[:,0]))
+ax = sns.regplot(x=(dat['labels'][:,0].flatten()),y=(mcmc._y[:,0]))
 sns.regplot(x=(dat['test_labels'][:,0].flatten()),y=(mcmc._y_test[:,0]))
-sns.regplot(x=(dat['labels'][:,1].flatten()),y=(mcmc._y[:,1]))
-sns.regplot(x=(dat['test_labels'][:,1].flatten()),y=(mcmc._y_test[:,1]))
+# sns.regplot(x=(dat['labels'][:,1].flatten()),y=(mcmc._y[:,1]))
+# sns.regplot(x=(dat['test_labels'][:,1].flatten()),y=(mcmc._y_test[:,1]))
 # sns.regplot(x=dat['labels'][:,1].flatten(),y=mcmc._y[:,1])
-plt.axline((0, 0), (1, 1), linewidth=2, color='k')
+ax.set(xlabel='True values', ylabel='Estimated values')
+plt.axline((0, 0), (1, 1), linewidth=1, color='k')
 fig.show()
 
 #### run predict
