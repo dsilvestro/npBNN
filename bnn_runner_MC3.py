@@ -43,7 +43,8 @@ else:
 mcmcList = [bn.MCMC(bnnList[i],
                     temperature=temperatures[i],
                     n_iteration=100, sampling_f=100, print_f=1000, n_post_samples=100,
-                    mcmc_id=i, randomize_seed=True)
+                    mcmc_id=i, randomize_seed=True,
+                    adapt_freq=50, adapt_f=0.1, adapt_fM=0.6, adapt_stop=1000)
             for i in range(n_chains)]
 
 

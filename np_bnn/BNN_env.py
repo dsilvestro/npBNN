@@ -211,7 +211,7 @@ class MCMC():
                  temperature=1, n_iteration=100000, sampling_f=100, print_f=1000, n_post_samples=1000,
                  update_function=UpdateNormal, sample_from_prior=0, run_ID="", init_additional_prob=0,
                  likelihood_tempering=1, mcmc_id=0, randomize_seed=False, adapt_f=0, estimate_error=True,
-                 adapt_fM=1):
+                 adapt_fM=1, adapt_freq=1000, adapt_stop=None):
         if update_ws is None:
             update_ws = [0.075] * bnn_obj._n_layers
         if update_f is None:
@@ -279,7 +279,11 @@ class MCMC():
         self._freq_layer_update = np.ones(bnn_obj._n_layers)
         self._adapt_f = adapt_f
         self._adapt_fM = adapt_fM
-        self._adapt_stop = int(self._n_iterations * 0.05)
+        if adapt_stop is None:
+            self._adapt_stop = int(self._n_iterations * 0.05)
+        else:
+            self._adapt_stop = adapt_stop
+        self._adapt_freq = adapt_freq
         self._max_n = np.array([bnn_obj._w_layers[i].size for i in range(bnn_obj._n_layers)]).astype(int)
         if estimate_error:
             # std fixed to 1 for first few iterations
@@ -297,7 +301,7 @@ class MCMC():
         indicators_prime = bnn_obj._indicators + 0
         error_prm_tmp = bnn_obj._error_prm
 
-        if self._current_iteration % 1000 == 0 and self._current_iteration < self._adapt_stop:
+        if self._current_iteration % self._adapt_freq  == 0 and self._current_iteration < self._adapt_stop:
             if self._acceptance_rate < self._adapt_f:
                 self._freq_layer_update = self._freq_layer_update * 0.8
                 #print(self._freq_layer_update)
