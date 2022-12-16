@@ -38,6 +38,12 @@ p_scale = 1 # std for Normal, scale parameter for Cauchy and Laplace, boundaries
 use_class_weight = 0 # set to 1 to use class weights for unbalanced classes
 init_std = 0.1 # st dev of the initial weights
 use_bias_node = -1 # 0) no bias node, 1) bias in input layer, 2) bias in input and hidden layers, 3) bias in input/hidden/last, -1) bias in last layer
+instance_weights = None
+
+# instance weights
+# weights = np.array([0.1, 0.5, 1, 0.8, 0.4])
+# instance_weights = weights[dat['labels']]
+
 # set up the BNN model
 bnn_model = bn.npBNN(dat,
                      n_nodes = n_nodes_list,
@@ -47,7 +53,8 @@ bnn_model = bn.npBNN(dat,
                      prior_f=prior,
                      p_scale=p_scale,
                      seed=rseed,
-                     init_std=init_std)
+                     init_std=init_std,
+                     instance_weights=instance_weights)
 
 
 # set up the MCMC environment

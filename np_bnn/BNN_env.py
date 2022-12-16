@@ -12,7 +12,9 @@ class npBNN():
                  use_bias_node=1, init_std=0.1, p_scale=1, prior_ind1=0.5,
                  prior_f=1, hyper_p=0, freq_indicator=0, w_bound=np.infty,
                  pickle_file="", seed=1234, use_class_weights=0, actFun=ActFun(),init_weights=None,
-                 estimation_mode="classification"):
+                 estimation_mode="classification",
+                 instance_weights=None # array specifying instance weights
+                 ):
         # prior_f: 0) uniform 1) normal 2) cauchy
         # to change the boundaries of a uniform prior use -p_scale
         # hyper_p: 0) no hyperpriors, 1) 1 per layer, 2) 1 per input node, 3) 1 per node
@@ -76,6 +78,9 @@ class npBNN():
             print("Using class weights:", self._class_w)
         else:
             self._class_w = []
+
+        self._instance_weights = instance_weights
+
 
         # init weights
         if init_weights is None:
@@ -243,9 +248,10 @@ class MCMC():
             self._logLik = self._likelihood_f(self._y,
                                               bnn_obj._labels,
                                               bnn_obj._sample_id,
-                                              bnn_obj._class_w,
-                                              likelihood_tempering,
-                                              bnn_obj._error_prm)
+                                              class_weight=bnn_obj._class_w,
+                                              instance_weight=bnn_obj._instance_weights,
+                                              lik_temp=likelihood_tempering,
+                                              sig2=bnn_obj._error_prm)
         self._logPrior = bnn_obj.calc_prior() + init_additional_prob
         self._logPost = self._logLik + self._logPrior
         if bnn_obj._estimation_mode == "classification":
@@ -370,9 +376,10 @@ class MCMC():
             logLik_prime = self._likelihood_f(y_prime,
                                               bnn_obj._labels,
                                               bnn_obj._sample_id,
-                                              bnn_obj._class_w,
-                                              self._lik_temp,
-                                              error_prm_tmp)
+                                              class_weight=bnn_obj._class_w,
+                                              instance_weight=bnn_obj._instance_weights,
+                                              lik_temp=self._lik_temp,
+                                              sig2=error_prm_tmp)
         logPost_prime = logLik_prime + logPrior_prime
         rrr = np.log(self._rs.random())
         if (logPost_prime - self._logPost) * self._temperature + hastings >= rrr:

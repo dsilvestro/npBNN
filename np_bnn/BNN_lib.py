@@ -97,30 +97,48 @@ class ActFun():
 
 # likelihood function (Categorical)
 # TODO: refactor this as a class
-def calc_likelihood(prediction, labels, sample_id, class_weight=[], lik_temp=1, _=0):
+def calc_likelihood(prediction, labels, sample_id,
+                    class_weight=[], instance_weight=None,
+                    lik_temp=1, sig2=0):
     if len(class_weight):
-        return lik_temp * np.sum(np.log(prediction[sample_id, labels])*class_weight[labels])
+        if instance_weight is not None:
+            lik_tmp = np.sum(np.log(prediction[sample_id, labels]) * class_weight[labels], axis=1)
+            return lik_temp * (lik_tmp * instance_weight)
+        else:
+            return lik_temp * np.sum(np.log(prediction[sample_id, labels]) * class_weight[labels])
     else:
         # if lik_temp != 1:
         #     tempered_prediction = lik_temp ** prediction
         #     normalized_tempered_prediction = np.einsum('xy,x->xy', tempered_prediction, 1 / np.sum(tempered_prediction,axis=1))
         #     return np.sum(np.log(normalized_tempered_prediction[sample_id, labels]))
         # else:
-        return lik_temp * np.sum(np.log(prediction[sample_id, labels]))
+        if instance_weight is not None:
+            # print(np.log(prediction[sample_id, labels]).shape)
+            # print(np.log(prediction[sample_id, labels]))
+            # print(instance_weight)
+            return lik_temp * (np.sum(np.log(prediction[sample_id, labels]) * instance_weight))
+        else:
+            return lik_temp * np.sum(np.log(prediction[sample_id, labels]))
 
 def calc_likelihood_regression(prediction, # 2D array: inst x (mus + sigs)
                                true_values, # 2D array: val[inst x n_param
-                               _, __,
+                               _, class_weight=None,
+                               instance_weight=None,
                                lik_temp=1,
                                sig2=1):
+    if instance_weight is not None:
+        sys.exit("instance_weight not implemented for regression")
     return lik_temp * np.sum(scipy.stats.norm.logpdf(true_values, prediction, sig2))
 
 
 def calc_likelihood_regression_error(prediction, # 2D array: inst x (mus + sigs)
                                true_values, # 2D array: val[inst x n_param
-                               _, __,
+                               _, class_weight=None,
+                               instance_weight=None,
                                lik_temp=1,
-                               ___=0):
+                               sig2=0):
+    if instance_weight is not None:
+        sys.exit("instance_weight not implemented for regression")
     ind = true_values.shape[1] #int(prediction.shape[1] / 2)
     return lik_temp * np.sum(scipy.stats.norm.logpdf(true_values, prediction[:,:ind], prediction[:,ind:]))
 
