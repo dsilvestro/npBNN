@@ -13,7 +13,8 @@ class npBNN():
                  prior_f=1, hyper_p=0, freq_indicator=0, w_bound=np.infty,
                  pickle_file="", seed=1234, use_class_weights=0, actFun=ActFun(),init_weights=None,
                  estimation_mode="classification",
-                 instance_weights=None # array specifying instance weights
+                 instance_weights=None, # array specifying instance weights
+                 empirical_error=False
                  ):
         # prior_f: 0) uniform 1) normal 2) cauchy
         # to change the boundaries of a uniform prior use -p_scale
@@ -50,6 +51,7 @@ class npBNN():
             self._size_output = self._labels.shape[1] * 2 # mus, sigs
             self._n_output_prm = self._labels.shape[1]
             self._output_act_fun = RegressTransformError
+        self._empirical_error = empirical_error
         self._init_std = init_std
         try: # see if we have an actual list or single element
             n_nodes = list(n_nodes)
@@ -337,10 +339,13 @@ class MCMC():
             bnn_obj._act_fun.reset_prm(prm_tmp)
 
         if bnn_obj._estimation_mode == "regression" and self._current_iteration > self._estimate_error:
-            error_prm_tmp, _, h = multiplier_proposal_vector(bnn_obj._error_prm, d=1.1, f=0.5, rs=self._rs)
-            r = 1
-            additional_prob += np.log(r) * -np.sum(error_prm_tmp)*r # aka exponential Exp(r)
-            hastings += h
+            if bnn_obj._empirical_error:
+                pass
+            else:
+                error_prm_tmp, _, h = multiplier_proposal_vector(bnn_obj._error_prm, d=1.1, f=0.5, rs=self._rs)
+                r = 1
+                hastings += h
+                additional_prob += np.log(r) * -np.sum(error_prm_tmp)*r # aka exponential Exp(r)
 
         rr = self._rs.random(bnn_obj._n_layers)
         rr[np.argmin(rr)] = 0 # make sure one layer is always updated
@@ -368,6 +373,11 @@ class MCMC():
             else:
                 tmp = RunHiddenLayer(tmp, w_layers_prime_temp, False, i)
         y_prime = bnn_obj._output_act_fun(tmp)
+
+        if bnn_obj._empirical_error:
+            error_prm_tmp = np.std(y_prime - bnn_obj._labels, axis=0)
+        # elif self._current_iteration < self._estimate_error:
+        #     error_prm_tmp = np.std(y_prime - bnn_obj._labels, axis=0)
 
         logPrior_prime = bnn_obj.calc_prior(w=w_layers_prime, ind=indicators_prime) + additional_prob
         if self._sample_from_prior:
@@ -488,6 +498,8 @@ class postLogger():
             row = row + add_prms
         if bnn_obj._act_fun._trainable:
             row = row + list(bnn_obj._act_fun._acc_prm)
+        if self._estimation_mode == "regression":
+            row = row + list(bnn_obj._error_prm)
         # row.append(mcmc_obj._accepted_states / mcmc_obj._current_iteration)
         row.append(mcmc_obj._acceptance_rate)
         row.append(mcmc_obj._mcmc_id)

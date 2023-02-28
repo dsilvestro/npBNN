@@ -152,10 +152,13 @@ def init_output_files(bnn_obj, filename="BNN", sample_from_prior=0, outpath="",a
 
     if bnn_obj._act_fun._trainable:
         head = head + ["alpha_%s" % (i) for i in range(bnn_obj._n_layers-1)]
-    
+
+    if len(bnn_obj._error_prm):
+        head = head + ["sig_%s" % (i) for i in range(len(bnn_obj._error_prm))]
+
     head.append("acc_prob")
     head.append("mcmc_id")
-    
+
     if not continue_logfile:
         logfile_IO = open(logfile_name, "w")
         wlog = csv.writer(logfile_IO, delimiter='\t')
