@@ -3,13 +3,15 @@ import glob
 import os
 import numpy as np
 import pickle
+from numpy.random import MT19937, RandomState, SeedSequence
+
 from .BNN_lib import *
 
 # get data
 def get_data(f,l=None,testsize=0.1, batch_training=0,seed=1234, all_class_in_testset=1,
              instance_id=0, header=0,feature_indx=None,randomize_order=True,from_file=True,
              label_mode="classification", cv=-1):
-    np.random.seed(seed)
+    rs = RandomState(MT19937(SeedSequence(seed)))
     inst_id = []
     if from_file:
         fname = os.path.splitext(os.path.basename(f))[0]
@@ -73,11 +75,11 @@ def get_data(f,l=None,testsize=0.1, batch_training=0,seed=1234, all_class_in_tes
                                                                                    all_class_in_testset=all_class_in_testset,
                                                                                    inst_id=inst_id,
                                                                                    randomize=randomize_order,
-                                                                                   seed=seed,
-                                                                                   cv=cv)
+                                                                                   cv=cv,
+                                                                                   rs=rs)
 
         if batch_training:
-            indx = np.random.randint(0,len(labels),batch_training)
+            indx = rs.randint(0,len(labels),batch_training)
             x = x[indx]
             labels = labels[indx]
 
@@ -173,11 +175,12 @@ def init_output_files(bnn_obj, filename="BNN", sample_from_prior=0, outpath="",a
     return logfile_name, w_file_name, pkl_file
 
 
-def randomize_data(tot_x, tot_labels, testsize=0.1, all_class_in_testset=1, inst_id=[], randomize=True, seed=1234, cv=-1):
-    np.random.seed(seed)
+def randomize_data(tot_x, tot_labels, testsize=0.1, all_class_in_testset=1,
+                   inst_id=[], randomize=True, cv=-1, rs=None):
+
     if randomize:
         if testsize:
-            rnd_order = np.random.choice(range(len(tot_labels)), len(tot_labels), replace=False)
+            rnd_order = rs.choice(range(len(tot_labels)), len(tot_labels), replace=False)
         else:
             rnd_order = np.arange(len(tot_labels))
     else:
@@ -210,7 +213,7 @@ def randomize_data(tot_x, tot_labels, testsize=0.1, all_class_in_testset=1, inst
 
         for i in np.unique(tot_labels):
             ind = np.where(tot_labels == i)[0]
-            test_set_ind = test_set_ind + list(np.random.choice(ind, np.max([1, int(testsize*len(ind))])))
+            test_set_ind = test_set_ind + list(rs.choice(ind, np.max([1, int(testsize*len(ind))])))
 
         test_set_ind = np.array(test_set_ind)
         x_test = tot_x[test_set_ind]

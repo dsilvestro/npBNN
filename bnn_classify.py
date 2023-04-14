@@ -5,7 +5,6 @@ import np_bnn as bn
 
 # set random seed
 rseed = 1234
-np.random.seed(rseed)
 
 # load data (2 files: features and labels)
 f= "./example_files/data_features.txt"

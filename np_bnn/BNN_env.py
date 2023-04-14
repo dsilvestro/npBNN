@@ -22,7 +22,6 @@ class npBNN():
         # freq_indicator -> update freq indicators: 0) no indicators, 0-1
         data, labels, test_data, test_labels = dat['data'], dat['labels'], dat['test_data'], dat['test_labels']
         self._seed = seed
-        np.random.seed(self._seed)
         self._data = data
         if estimation_mode == "classification":
             self._labels = labels.astype(int)
