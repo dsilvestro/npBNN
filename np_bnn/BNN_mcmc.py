@@ -5,8 +5,6 @@ import scipy.stats
 np.set_printoptions(suppress=True, precision=3)
 small_number = 1e-10
 import random
-from numpy.random import MT19937
-from numpy.random import RandomState, SeedSequence
 
 def init_weight_prm(n_nodes, n_features, size_output, init_std=0.1, bias_node=0):
     bn, bn2, bn3 = 0, 0, 0
@@ -29,7 +27,8 @@ def init_weight_prm(n_nodes, n_features, size_output, init_std=0.1, bias_node=0)
 def UpdateFixedNormal(i, d=1, n=1, Mb=100, mb= -100, rs=0):
     if not rs:
         rseed = random.randint(1000, 9999)
-        rs = RandomState(MT19937(SeedSequence(rseed)))
+        # rs = np.random.default_rng(rseed)
+        rs = np.random.default_rng(rseed)
     Ix = rs.randint(0, i.shape[0],n) # faster than np.random.choice
     Iy = rs.randint(0, i.shape[1],n)
     current_prm = i[Ix,Iy]
@@ -46,7 +45,7 @@ def UpdateNormal1D(i, d=0.01, n=1, Mb=100, mb= -100, rs=0):
     i = np.array(i)
     if not rs:
         rseed = random.randint(1000, 9999)
-        rs = RandomState(MT19937(SeedSequence(rseed)))
+        rs = np.random.default_rng(rseed)
     Ix = rs.randint(0, len(i),n) # faster than np.random.choice
     z = np.zeros(i.shape) + i
     z[Ix] = z[Ix] + rs.normal(0, d, n)
@@ -59,7 +58,7 @@ def UpdateNormal(i, d=0.01, n=1, Mb=100, mb= -100, rs=0):
     i = np.array(i)
     if not rs:
         rseed = random.randint(1000, 9999)
-        rs = RandomState(MT19937(SeedSequence(rseed)))
+        rs = np.random.default_rng(rseed)
     Ix = rs.randint(0, i.shape[0],n) # faster than np.random.choice
     Iy = rs.randint(0, i.shape[1],n)
     z = np.zeros(i.shape) + i
@@ -73,7 +72,7 @@ def UpdateNormalNormalized(i, d=0.01, n=1, Mb=100, mb= -100, rs=0):
     i = np.array(i)
     if not rs:
         rseed = random.randint(1000, 9999)
-        rs = RandomState(MT19937(SeedSequence(rseed)))
+        rs = np.random.default_rng(rseed)
     Ix = rs.randint(0, i.shape[0],n) # faster than np.random.choice
     Iy = rs.randint(0, i.shape[1],n)
     z = np.zeros(i.shape) + i
@@ -102,7 +101,7 @@ def UpdateBinomial(ind,update_f,shape_out):
 def multiplier_proposal_vector(q, d=1.05, f=1, rs=0):
     if not rs:
         rseed = random.randint(1000, 9999)
-        rs = RandomState(MT19937(SeedSequence(rseed)))
+        rs = np.random.default_rng(rseed)
     S = q.shape
     ff = rs.binomial(1,f,S)
     u = rs.random(S)

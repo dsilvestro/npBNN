@@ -6,8 +6,6 @@ np.set_printoptions(suppress=True, precision=3)
 import pickle
 small_number = 1e-10
 import random, sys
-from numpy.random import MT19937
-from numpy.random import RandomState, SeedSequence
 from .BNN_files import *
 from .BNN_lib import *
 import os

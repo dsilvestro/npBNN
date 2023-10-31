@@ -1,6 +1,5 @@
 import numpy as np
 import scipy.stats
-from numpy.random import MT19937
 
 from .BNN_lib import *
 from .BNN_mcmc import *
@@ -280,7 +279,7 @@ class MCMC():
         self._lik_temp = likelihood_tempering
         self._mcmc_id = mcmc_id
         self._randomize_seed = randomize_seed
-        self._rs = RandomState(MT19937(SeedSequence(1234)))
+        self._rs = np.random.default_rng(1234)
         self._counter = 0
         self._n_post_samples = n_post_samples
         self._freq_layer_update = np.ones(bnn_obj._n_layers)
@@ -300,7 +299,8 @@ class MCMC():
 
     def mh_step(self, bnn_obj, additional_prob=0, return_bnn=False):
         if self._randomize_seed:
-            self._rs = RandomState(MT19937(SeedSequence(self._current_iteration + self._mcmc_id)))
+            # self._rs = RandomState(MT19937(SeedSequence(self._current_iteration + self._mcmc_id)))
+            self._rs = np.random.default_rng(self._current_iteration + self._mcmc_id)
 
         hastings = 0
         w_layers_prime = []
