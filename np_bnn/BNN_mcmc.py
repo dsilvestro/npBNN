@@ -29,8 +29,8 @@ def UpdateFixedNormal(i, d=1, n=1, Mb=100, mb= -100, rs=0):
         rseed = random.randint(1000, 9999)
         # rs = np.random.default_rng(rseed)
         rs = np.random.default_rng(rseed)
-    Ix = rs.randint(0, i.shape[0],n) # faster than np.random.choice
-    Iy = rs.randint(0, i.shape[1],n)
+    Ix = rs.integers(0, i.shape[0],n) # faster than np.random.choice
+    Iy = rs.integers(0, i.shape[1],n)
     current_prm = i[Ix,Iy]
     new_prm = rs.normal(0, d[Ix,Iy], n)
     hastings = np.sum(scipy.stats.norm.logpdf(current_prm, 0, d[Ix,Iy]) - \
@@ -46,7 +46,7 @@ def UpdateNormal1D(i, d=0.01, n=1, Mb=100, mb= -100, rs=0):
     if not rs:
         rseed = random.randint(1000, 9999)
         rs = np.random.default_rng(rseed)
-    Ix = rs.randint(0, len(i),n) # faster than np.random.choice
+    Ix = rs.integers(0, len(i),n) # faster than np.random.choice
     z = np.zeros(i.shape) + i
     z[Ix] = z[Ix] + rs.normal(0, d, n)
     z[z > Mb] = Mb - (z[z>Mb] - Mb)
@@ -59,8 +59,8 @@ def UpdateNormal(i, d=0.01, n=1, Mb=100, mb= -100, rs=0):
     if not rs:
         rseed = random.randint(1000, 9999)
         rs = np.random.default_rng(rseed)
-    Ix = rs.randint(0, i.shape[0],n) # faster than np.random.choice
-    Iy = rs.randint(0, i.shape[1],n)
+    Ix = rs.integers(0, i.shape[0],n) # faster than np.random.choice
+    Iy = rs.integers(0, i.shape[1],n)
     z = np.zeros(i.shape) + i
     z[Ix,Iy] = z[Ix,Iy] + rs.normal(0, d[Ix,Iy], n)
     z[z > Mb] = Mb - (z[z>Mb] - Mb)
@@ -73,8 +73,8 @@ def UpdateNormalNormalized(i, d=0.01, n=1, Mb=100, mb= -100, rs=0):
     if not rs:
         rseed = random.randint(1000, 9999)
         rs = np.random.default_rng(rseed)
-    Ix = rs.randint(0, i.shape[0],n) # faster than np.random.choice
-    Iy = rs.randint(0, i.shape[1],n)
+    Ix = rs.integers(0, i.shape[0],n) # faster than np.random.choice
+    Iy = rs.integers(0, i.shape[1],n)
     z = np.zeros(i.shape) + i
     z[Ix,Iy] = z[Ix,Iy] + rs.normal(0, d[Ix,Iy], n)
     z = z/np.sum(z)
