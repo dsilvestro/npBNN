@@ -13,7 +13,9 @@ class npBNN():
                  pickle_file="", seed=1234, use_class_weights=0, actFun=ActFun(),init_weights=None,
                  estimation_mode="classification",
                  instance_weights=None, # array specifying instance weights
-                 empirical_error=False
+                 empirical_error=False,
+                 size_output=None,
+                 output_act_fun=None
                  ):
         # prior_f: 0) uniform 1) normal 2) cauchy
         # to change the boundaries of a uniform prior use -p_scale
@@ -49,6 +51,14 @@ class npBNN():
             self._size_output = self._labels.shape[1] * 2 # mus, sigs
             self._n_output_prm = self._labels.shape[1]
             self._output_act_fun = RegressTransformError
+        elif estimation_mode == "custom":
+            self._size_output = size_output
+            self._n_output_prm = size_output
+            if output_act_fun is None:
+                self._output_act_fun = RegressTransform
+            else:
+                self._output_act_fun = output_act_fun
+
         self._empirical_error = empirical_error
         self._init_std = init_std
         try: # see if we have an actual list or single element
@@ -216,7 +226,8 @@ class MCMC():
                  temperature=1, n_iteration=100000, sampling_f=100, print_f=1000, n_post_samples=1000,
                  update_function=UpdateNormal, sample_from_prior=0, run_ID="", init_additional_prob=0,
                  likelihood_tempering=1, mcmc_id=0, randomize_seed=False, adapt_f=0, estimate_error=True,
-                 adapt_fM=1, adapt_freq=1000, adapt_stop=None):
+                 adapt_fM=1, adapt_freq=1000, adapt_stop=None, likelihood_f=None,
+                 accuracy_f=None, accuracy_lab_f=None):
         if update_ws is None:
             update_ws = [0.075] * bnn_obj._n_layers
         if update_f is None:
@@ -240,8 +251,10 @@ class MCMC():
             self._likelihood_f = calc_likelihood
         elif bnn_obj._estimation_mode == "regression":
             self._likelihood_f = calc_likelihood_regression
-        else:
+        elif bnn_obj._estimation_mode == "regression-error":
             self._likelihood_f = calc_likelihood_regression_error
+        else:
+            self._likelihood_f = likelihood_f
         if sample_from_prior:
             self._logLik = 0
         else:
@@ -254,12 +267,27 @@ class MCMC():
                                               sig2=bnn_obj._error_prm)
         self._logPrior = bnn_obj.calc_prior() + init_additional_prob
         self._logPost = self._logLik + self._logPrior
-        if bnn_obj._estimation_mode == "classification":
-            self._accuracy_f = CalcAccuracy
-            self._accuracy_lab_f = CalcLabelAccuracy
+        if accuracy_f is None:
+            if bnn_obj._estimation_mode == "classification":
+                self._accuracy_f = CalcAccuracy
+            elif bnn_obj._estimation_mode == "regression" or bnn_obj._estimation_mode == "regression-error":
+                self._accuracy_f = CalcAccuracyRegression
+            else:
+                self._accuracy_f = SkipAccuracy
         else:
-            self._accuracy_f = CalcAccuracyRegression
-            self._accuracy_lab_f = CalcLabelAccuracyRegression
+            self._accuracy_f = accuracy_f
+
+        if accuracy_lab_f is None:
+            if bnn_obj._estimation_mode == "classification":
+                self._accuracy_lab_f = CalcLabelAccuracy
+            elif bnn_obj._estimation_mode == "regression" or bnn_obj._estimation_mode == "regression-error":
+                self._accuracy_lab_f = CalcLabelAccuracyRegression
+            else:
+                self._accuracy_lab_f = SkipAccuracyVec
+        else:
+            self._accuracy_lab_f = accuracy_lab_f
+
+
 
         self._accuracy = self._accuracy_f(self._y, bnn_obj._labels)
         self._label_acc = self._accuracy_lab_f(self._y, bnn_obj._labels)
@@ -481,8 +509,13 @@ class postLogger():
             self._post_weight_samples = self._post_weight_samples[-maxlength:]
 
     def log_sample(self, bnn_obj, mcmc_obj, add_prms=None):
-        row = [mcmc_obj._current_iteration, mcmc_obj._logPost, mcmc_obj._logLik, mcmc_obj._logPrior,
-               mcmc_obj._accuracy, mcmc_obj._test_accuracy] + list(mcmc_obj._label_acc)
+        if self._estimation_mode == "custom":
+            row = [mcmc_obj._current_iteration, mcmc_obj._logPost, mcmc_obj._logLik, mcmc_obj._logPrior,
+                   mcmc_obj._accuracy, mcmc_obj._test_accuracy]
+
+        else:
+            row = [mcmc_obj._current_iteration, mcmc_obj._logPost, mcmc_obj._logLik, mcmc_obj._logPrior,
+                   mcmc_obj._accuracy, mcmc_obj._test_accuracy] + list(mcmc_obj._label_acc)
         #list(mcmc_obj._label_freq)
         for i in range(bnn_obj._n_layers):
             row = row + [np.mean(bnn_obj._w_layers[i]), np.std(bnn_obj._w_layers[i])]

@@ -54,14 +54,14 @@ def get_data(f,l=None,testsize=0.1, batch_training=0,seed=1234, all_class_in_tes
         try:
             l = pd.DataFrame(l)
             if instance_id:
-                tot_labels = l.values[:, 1]
+                tot_labels = l.values[:, 1:]
             else:
                 tot_labels = l.values.astype(str).flatten()  # if l already is a dataframe
         except:
             tot_labels = np.loadtxt(l,skiprows=header,dtype=str)
 
             if instance_id:
-                tot_labels = tot_labels[:, 1]
+                tot_labels = tot_labels[:, 1:]
 
         if label_mode == "classification":
             tot_labels_numeric = turn_labels_to_numeric(tot_labels, l)
@@ -132,6 +132,8 @@ def init_output_files(bnn_obj, filename="BNN", sample_from_prior=0, outpath="",a
         head = head + ["accuracy", "test_accuracy"]
         for i in range(bnn_obj._n_output_prm):
             head.append("acc_C%s" % i)
+    elif bnn_obj._estimation_mode == "custom":
+        head = head + ["MSE", "test_MSE"]
     else:
         head = head + ["MSE", "test_MSE"]
         for i in range(bnn_obj._n_output_prm):

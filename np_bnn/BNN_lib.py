@@ -214,6 +214,11 @@ def CalcLabelFreq(y):
     f[tmp[0]] = tmp[1]
     return f/len(prediction)
 
+def SkipAccuracy(_, __):
+    return 1.0
+
+def SkipAccuracyVec(_, __):
+    return np.ones(1)
 
 def SaveObject(obj, filename):
     with open(filename, 'wb') as output:  # Overwrites any existing file.
