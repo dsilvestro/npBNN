@@ -4,7 +4,7 @@ import os
 import numpy as np
 import pickle
 from numpy.random import MT19937, RandomState, SeedSequence
-
+import copy
 from .BNN_lib import *
 
 # get data
@@ -300,7 +300,22 @@ def turn_labels_to_numeric(labels,label_file,save_to_file=False):
     return numerical_labels
 
 
+def assign_indx(l):
+    ind = [0]
+    i = 0
+    for j in range(1, len(l)):
+        # print(l[j], l[:j], ind)
+        if l[j] in l[:j]:
+            ind_j = ind[np.where(np.array(l) == l[j])[0][0]]
+        else:
+            i += 1
+            ind_j = i
+        ind.append(ind_j)
+    return np.array(ind)
 
 
-
-
+def unique_unsorted(a_tmp):
+    a = copy.deepcopy(a_tmp)
+    indx = np.sort(np.unique(a, return_index=True)[1])
+    u = a_tmp[indx]
+    return u
