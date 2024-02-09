@@ -7,19 +7,6 @@ import scipy.stats
 rseed = 1234
 np.random.seed(rseed)
 
-# generate data
-make_up_data = 0
-if make_up_data:
-    a = np.random.gamma(2,2,1000)
-    b = np.random.random(len(a))*a
-    x = np.random.uniform(1,4,1000)
-    y0 = scipy.stats.gamma.logpdf(x,a,scale=1/b)
-    y1 = scipy.stats.gamma.logpdf(x-1,a,scale=1/(a+b)) + 5
-    features = np.array([x,a,b]).T
-    labels = np.array([y0,y1]).T
-    np.savetxt("./example_files/data_features_reg.txt", features)
-    np.savetxt("./example_files/data_lab_reg.txt", labels)
-
 f="./example_files/data_features_reg.txt"
 l="./example_files/data_lab_reg.txt"
 
@@ -43,27 +30,28 @@ bnn_model = bn.npBNN(dat,
                      estimation_mode="regression",
                      actFun = bn.ActFun(fun="tanh"),
                      p_scale=1,
-                     use_bias_node=0)
+                     use_bias_node=0,
+                     empirical_error=True)
 
 
 # set up the MCMC environment
 mcmc = bn.MCMC(bnn_model,
                update_ws=[0.025,0.025, 0.05],
                update_f=[0.005,0.005,0.05],
-               n_iteration=200000,
+               n_iteration=20000,
                sampling_f=100,
                print_f=1000,
                n_post_samples=100,
                likelihood_tempering=1,
                adapt_f=0.3,
-               estimate_error=True)
+               estimate_error=False)
 
 # mcmc._update_n = [1,1,1]
 print(mcmc._update_n)
 
 mcmc._accuracy_lab_f(mcmc._y, bnn_model._labels)
 # initialize output files
-logger = bn.postLogger(bnn_model, filename="err_est_MASK", log_all_weights=0)
+logger = bn.postLogger(bnn_model, filename="testM", log_all_weights=0)
 
 # run MCMC
 bn.run_mcmc(bnn_model, mcmc, logger)
@@ -73,11 +61,11 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 fig = plt.figure(figsize=(5, 5))
 # sns.regplot(x=dat['labels'][:,0].flatten(),y=mcmc._y[:,0])
-ax = sns.regplot(x=(dat['labels'][:,0].flatten()),y=(mcmc._y[:,0]))
-sns.regplot(x=(dat['test_labels'][:,0].flatten()),y=(mcmc._y_test[:,0]))
+# ax = sns.regplot(x=(dat['labels'][:,0].flatten()),y=(mcmc._y[:,0]))
+# sns.regplot(x=(dat['test_labels'][:,0].flatten()),y=(mcmc._y_test[:,0]))
 # sns.regplot(x=(dat['labels'][:,1].flatten()),y=(mcmc._y[:,1]))
-# sns.regplot(x=(dat['test_labels'][:,1].flatten()),y=(mcmc._y_test[:,1]))
-# sns.regplot(x=dat['labels'][:,1].flatten(),y=mcmc._y[:,1])
+sns.regplot(x=(dat['test_labels'][:,1].flatten()),y=(mcmc._y_test[:,1]))
+sns.regplot(x=dat['labels'][:,1].flatten(),y=mcmc._y[:,1])
 ax.set(xlabel='True values', ylabel='Estimated values')
 plt.axline((0, 0), (1, 1), linewidth=1, color='k')
 fig.show()
