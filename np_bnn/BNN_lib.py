@@ -61,6 +61,7 @@ def swish_f(z, _):
     return z
 
 def tanh_f(z, _):
+    # approximate tanh
     return 1.0 - ( 2.0 / ( np.exp(2.0 * z) + 1.0 ) ) 
     # return np.tanh(z)
 
