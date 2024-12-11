@@ -3,7 +3,6 @@ import glob
 import os
 import numpy as np
 import pickle
-from numpy.random import MT19937, RandomState, SeedSequence
 import copy
 from .BNN_lib import *
 
@@ -11,7 +10,7 @@ from .BNN_lib import *
 def get_data(f,l=None,testsize=0.1, batch_training=0,seed=1234, all_class_in_testset=1,
              instance_id=0, header=0,feature_indx=None,randomize_order=True,from_file=True,
              label_mode="classification", cv=-1):
-    rs = RandomState(MT19937(SeedSequence(seed)))
+    rs = np.random.default_rng(seed)
     inst_id = []
     if from_file:
         fname = os.path.splitext(os.path.basename(f))[0]
