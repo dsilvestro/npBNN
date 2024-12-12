@@ -9,7 +9,7 @@ from .BNN_files import *
 class npBNN():
     def __init__(self, dat, n_nodes=[50, 5],
                  use_bias_node=1, init_std=0.1, p_scale=1, prior_ind1=0.5,
-                 prior_f=1, hyper_p=0, freq_indicator=0, w_bound=np.infty,
+                 prior_f=1, hyper_p=0, freq_indicator=0, w_bound=np.inf,
                  pickle_file="", seed=1234, use_class_weights=0, actFun=ActFun(),init_weights=None,
                  estimation_mode="classification",
                  instance_weights=None, # array specifying instance weights
