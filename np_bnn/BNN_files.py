@@ -12,13 +12,14 @@ def get_data(f,l=None,testsize=0.1, batch_training=0,seed=1234, all_class_in_tes
              label_mode="classification", cv=-1):
     rs = np.random.default_rng(seed)
     inst_id = []
+    print("instance_id", instance_id)
     if from_file:
         fname = os.path.splitext(os.path.basename(f))[0]
         try:
-            tot_x = np.load(f)
+            tot_x = np.load(f, allow_pickle=True)
         except:
             if not instance_id:
-                tot_x = np.loadtxt(f, skiprows=header)
+                tot_x = np.loadtxt(f, skiprows=int(header))
             else:
                 tmp = np.genfromtxt(f, skip_header=header, dtype=str)
                 tot_x = tmp[:,1:].astype(float)
@@ -57,7 +58,7 @@ def get_data(f,l=None,testsize=0.1, batch_training=0,seed=1234, all_class_in_tes
             else:
                 tot_labels = l.values.astype(str).flatten()  # if l already is a dataframe
         except:
-            tot_labels = np.loadtxt(l,skiprows=header,dtype=str)
+            tot_labels = np.loadtxt(l, skiprows=int(header), dtype=str)
 
             if instance_id:
                 tot_labels = tot_labels[:, 1:]
@@ -78,7 +79,7 @@ def get_data(f,l=None,testsize=0.1, batch_training=0,seed=1234, all_class_in_tes
                                                                                    rs=rs)
 
         if batch_training:
-            indx = rs.randint(0,len(labels),batch_training)
+            indx = rs.integers(0,len(labels),batch_training)
             x = x[indx]
             labels = labels[indx]
 
@@ -95,6 +96,7 @@ def get_data(f,l=None,testsize=0.1, batch_training=0,seed=1234, all_class_in_tes
 
 
 def save_data(dat, lab, outname="data", test_dat=[], test_lab=[]):
+    test_lab = np.array(test_lab)
     np.savetxt(outname+"_features.txt", dat, delimiter="\t")
     np.savetxt(outname+"_labeles.txt", lab.astype(int), delimiter="\t")
     if len(test_dat) > 0:
@@ -290,7 +292,7 @@ def turn_labels_to_numeric(labels,label_file,save_to_file=False):
     numerical_labels = np.zeros(len(labels)).astype(int)
     c = 0
     for i in np.unique(labels):
-        numerical_labels[labels == i] = c
+        numerical_labels[(labels == i).flatten()] = c
         c += 1
 
     if save_to_file:

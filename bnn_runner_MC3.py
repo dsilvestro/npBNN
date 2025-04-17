@@ -1,3 +1,5 @@
+import os
+import multiprocessing
 import numpy as np
 from concurrent.futures import ProcessPoolExecutor
 np.set_printoptions(suppress=True, precision=3)
@@ -26,7 +28,7 @@ use_class_weight = 0 # set to 1 to use class weights for unbalanced classes
 
 # set up the BNN model
 
-n_chains = 10
+n_chains = 4
 rseeds = np.random.choice(range(1000,9999), n_chains, replace=False)
 
 
@@ -61,8 +63,18 @@ def run_single_mcmc(arg_list):
     return [bnn_obj_new, mcmc_obj_new]
 
 for mc3_it in range(500):
-    with ProcessPoolExecutor(max_workers=n_chains) as pool:
+
+    # Choose the appropriate multiprocessing method based on the OS
+    if os.name == 'posix':  # For Unix-based systems (macOS, Linux)
+        ctx = multiprocessing.get_context('fork')
+    else:  # For Windows
+        ctx = multiprocessing.get_context('spawn')
+
+    with ctx.Pool(n_chains) as pool:
         singleChainArgs = list(pool.map(run_single_mcmc, singleChainArgs))
+
+    # with ProcessPoolExecutor(max_workers=n_chains) as pool:
+    #     singleChainArgs = list(pool.map(run_single_mcmc, singleChainArgs))
         
     # singleChainArgs = [i for i in tmp]
     if n_chains > 1:
@@ -94,7 +106,7 @@ for mc3_it in range(500):
 # make predictions based on MCMC's estimated weights
 # test data
 post_pr_test = bn.predictBNN(dat['test_data'],
-                             pickle_file=logger._w_file,
+                             pickle_file=logger._pklfile,
                              test_labels=dat['test_labels'],
                              instance_id=dat['id_test_data'])
 
@@ -105,7 +117,7 @@ dat = bn.get_data(f, l,
                   instance_id=1)  # input data includes names of instances
 
 post_pr_all = bn.predictBNN(dat['data'],
-                            pickle_file=logger._w_file,
+                            pickle_file=logger._pklfile,
                             test_labels=dat['labels'],
                             instance_id=dat['id_data'])
 
@@ -116,7 +128,7 @@ dat = bn.get_data(f="./example_files/unlabeled_data.txt",
                   instance_id=1)  # input data includes names of instances
 
 post_pr_new = bn.predictBNN(dat['data'],
-                  pickle_file=logger._w_file,
+                  pickle_file=logger._pklfile,
                   instance_id=dat['id_data'])
 
 

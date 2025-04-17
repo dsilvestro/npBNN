@@ -1,6 +1,4 @@
 import numpy as np
-np.set_printoptions(suppress=True, precision=3)
-# load BNN package
 import np_bnn as bn
 
 # set random seed
@@ -36,7 +34,7 @@ prior = 1 # 0) uniform, 1) normal, 2) Cauchy, 3) Laplace
 p_scale = 1 # std for Normal, scale parameter for Cauchy and Laplace, boundaries for Uniform
 use_class_weight = 0 # set to 1 to use class weights for unbalanced classes
 init_std = 0.1 # st dev of the initial weights
-use_bias_node = -1 # 0) no bias node, 1) bias in input layer, 2) bias in input and hidden layers, 3) bias in input/hidden/last, -1) bias in last layer
+use_bias_node = 2 # 0) no bias node, 1) bias in input layer, 2) bias in input and hidden layers, 3) bias in input/hidden/last, -1) bias in last layer
 instance_weights = None
 
 # instance weights
@@ -67,8 +65,8 @@ mcmc = bn.MCMC(bnn_model,
                print_f=1000,
                n_post_samples=100,
                sample_from_prior=sample_from_prior,
-               adapt_f=0.3, # target acceptance pribability (min)
-               adapt_fM=0.6 # target acceptance pribability (max)
+               adapt_f=0.3, # target acceptance probability (min)
+               adapt_fM=0.6 # target acceptance probability (max)
                )
 
 

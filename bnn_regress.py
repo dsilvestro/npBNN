@@ -1,4 +1,7 @@
 import numpy as np
+import seaborn as sns
+import matplotlib.pyplot as plt
+
 np.set_printoptions(suppress=True, precision=3)
 # load BNN package
 import np_bnn as bn
@@ -10,6 +13,8 @@ np.random.seed(rseed)
 f="./example_files/data_features_reg.txt"
 l="./example_files/data_lab_reg.txt"
 
+# tot_x = np.load(f, allow_pickle=False)
+# tot_x = np.loadtxt(f, skiprows=True)
 
 dat = bn.get_data(f,
                   l,
@@ -26,11 +31,11 @@ dat = bn.get_data(f,
 
 # set up the BNN model
 bnn_model = bn.npBNN(dat,
-                     n_nodes = [6,2],
+                     n_nodes = [6,4],
                      estimation_mode="regression",
                      actFun = bn.ActFun(fun="tanh"),
                      p_scale=1,
-                     use_bias_node=0,
+                     use_bias_node=2,
                      empirical_error=True)
 
 
@@ -57,13 +62,10 @@ logger = bn.postLogger(bnn_model, filename="testM", log_all_weights=0)
 bn.run_mcmc(bnn_model, mcmc, logger)
 
 
-import seaborn as sns
-import matplotlib.pyplot as plt
 fig = plt.figure(figsize=(5, 5))
-# sns.regplot(x=dat['labels'][:,0].flatten(),y=mcmc._y[:,0])
-# ax = sns.regplot(x=(dat['labels'][:,0].flatten()),y=(mcmc._y[:,0]))
-# sns.regplot(x=(dat['test_labels'][:,0].flatten()),y=(mcmc._y_test[:,0]))
-# sns.regplot(x=(dat['labels'][:,1].flatten()),y=(mcmc._y[:,1]))
+ax = sns.regplot(x=(dat['labels'][:,0].flatten()),y=(mcmc._y[:,0]))
+sns.regplot(x=(dat['test_labels'][:,0].flatten()),y=(mcmc._y_test[:,0]))
+sns.regplot(x=(dat['labels'][:,1].flatten()),y=(mcmc._y[:,1]))
 sns.regplot(x=(dat['test_labels'][:,1].flatten()),y=(mcmc._y_test[:,1]))
 sns.regplot(x=dat['labels'][:,1].flatten(),y=mcmc._y[:,1])
 ax.set(xlabel='True values', ylabel='Estimated values')

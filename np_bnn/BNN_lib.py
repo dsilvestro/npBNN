@@ -151,13 +151,25 @@ def MatrixMultiplication(x1,x2):
         z1 += x2[:, 0].T
     return z1
 
+def MatrixMultiplicationD(x1,x2):
+    x2t = x2.T
+    # matrix multiplication
+    if x1.shape[1] == x2t.shape[0]:
+        z = np.dot(x1, x2t)
+    else:
+        z = np.dot(x1, x2t[1:,])
+        z += x2t[0,]
+    return z
+
+
 # SoftMax function
 def SoftMax(z):
     # return ((np.exp(z).T)/np.sum(np.exp(z),axis=1)).T
     return scipy.special.softmax(z, axis=1)
 
-def SoftPLus(z):
-    return np.log(np.exp(z) + 1)
+def SoftPlus(z):
+    # return np.log(np.exp(z) + 1)
+    return np.logaddexp(0, z) # prevent overflow
 
 def RegressTransform(z):
     return z
@@ -166,11 +178,11 @@ def RegressTransformError(z, ind=None):
     if ind is None:
         ind = int(z.shape[1]/2)
     #z[:,ind:] = relu_f(z[:, ind:],0) + 0.01
-    z[:, ind:] = SoftPLus(z[:, ind:])
+    z[:, ind:] = SoftPlus(z[:, ind:])
     return z
 
 def RunHiddenLayer(z0, w01, actFun, layer_n):
-    z1 = MatrixMultiplication(z0, w01)
+    z1 = MatrixMultiplicationD(z0, w01)
     if actFun:
         return actFun.eval(z1, layer_n)
     else:
