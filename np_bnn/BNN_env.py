@@ -220,6 +220,9 @@ class npBNN():
         print("N. of parameters:", n_params)
         for w in self._w_layers: print(w.shape)
 
+    def reset_seed(self, seed):
+        self._seed = seed
+
 
 class MCMC():
     def __init__(self, bnn_obj, update_f=None, update_ws=None,

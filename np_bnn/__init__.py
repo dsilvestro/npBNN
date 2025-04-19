@@ -1,4 +1,4 @@
-__version__ = '0.1.17'
+__version__ = '0.1.18'
 __citation__ = "Silvestro D, Andermann T. (2020). \
 Prior choice affects ability of Bayesian neural networks to identify unknowns. \
 arXiv:2005.04987. "
@@ -14,3 +14,6 @@ from .BNN_lib import *
 
 from . import BNN_mcmc
 from .BNN_mcmc import *
+
+from . import BNN_mc3
+from .BNN_mc3 import *
