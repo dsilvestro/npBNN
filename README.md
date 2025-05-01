@@ -5,7 +5,7 @@ using the Numpy and Scipy libraries. The program is used in our [arXiv paper](ht
 To install the np_bnn library you can use:
 
 ```
-python -m pip install https://github.com/dsilvestro/npBNN/archive/refs/tags/v.0.1.17.tar.gz
+python -m pip install https://github.com/dsilvestro/npBNN/@v.0.1.17
 ```
 Note that you may have to use `python3` depending on which version of Python is set as default in your operating system. 
 
