@@ -41,6 +41,7 @@ mc3 = bn.MC3(data_obj,logger=logger,
              n_iteration=20000,
              n_chains=4,
              swap_frequency=100,
+             verbose=1,  # print successful swaps
              )
 
 # run MCMCMC

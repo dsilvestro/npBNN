@@ -405,7 +405,7 @@ def predictBNN(predict_features,
                wd="",
                verbose=1):
 
-    bnn_obj,mcmc_obj,logger_obj = load_obj(pickle_file)
+    bnn_obj, mcmc_obj, logger_obj = load_obj(pickle_file)
     post_samples = logger_obj._post_weight_samples
     actFun = bnn_obj._act_fun
     output_act_fun = bnn_obj._output_act_fun

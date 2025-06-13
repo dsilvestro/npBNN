@@ -42,22 +42,22 @@ class npBNN():
             self._size_output = len(np.unique(self._labels))
             self._n_output_prm = self._size_output
             self._output_act_fun = SoftMax
-        elif estimation_mode == "regression":
-            self._size_output = self._labels.shape[1] # mus, sig2 = 1
-            self._n_output_prm = self._labels.shape[1]
-            self._output_act_fun = RegressTransform
-            self._error_prm = np.ones(self._size_output)
-        elif estimation_mode == "regression-error":
-            self._size_output = self._labels.shape[1] * 2 # mus, sigs
-            self._n_output_prm = self._labels.shape[1]
-            self._output_act_fun = RegressTransformError
-        elif estimation_mode == "custom":
-            self._size_output = size_output
-            self._n_output_prm = size_output
+        else:
             if output_act_fun is None:
                 self._output_act_fun = RegressTransform
             else:
                 self._output_act_fun = output_act_fun
+
+            if estimation_mode == "regression":
+                self._size_output = self._labels.shape[1] # mus, sig2 = 1
+                self._n_output_prm = self._labels.shape[1]
+                self._error_prm = np.ones(self._size_output)
+            elif estimation_mode == "regression-error":
+                self._size_output = self._labels.shape[1] * 2 # mus, sigs
+                self._n_output_prm = self._labels.shape[1]
+            elif estimation_mode == "custom":
+                self._size_output = size_output
+                self._n_output_prm = size_output
 
         self._empirical_error = empirical_error
         self._init_std = init_std
@@ -135,8 +135,11 @@ class npBNN():
             else:
                 print('Using default prior N(0,s)')
                 self._prior_f = scipy.stats.norm.logpdf
+
+
         # init prior scales: will be updated if hyper-priors
         self._prior_scale = np.ones(self._n_layers) * self._p_scale
+
 
         if len(self._test_data) > 0:
             print("\nTraining set:", self._n_samples, "test set:", self._test_data.shape[0])
@@ -194,6 +197,27 @@ class npBNN():
             self._prior_scale = prior_scale
         else:
             pass
+
+    def sample_from_prior(self, reset_weights=True):
+        w = []
+
+        for n, s in zip(self._w_layers, self._prior_scale):
+                if self._prior == 0:
+                    w.append(np.random.uniform(-self._w_bound, self._w_bound, n.shape))
+                elif self._prior == 1:
+                    w.append(np.random.normal(0, s, n.shape))
+                elif self._prior == 2:
+                    return np.random.standard_cauchy(n.shape) * s
+                elif self._prior == 3:
+                    return np.random.laplace(0, scale=s, size=n.shape)
+                else:
+                    return np.random.standard_normal(n.shape)
+        if reset_weights:
+            self.reset_weights(w)
+        else:
+            return w
+
+
 
     def reset_weights(self, w):
         self._w_layers = w
@@ -577,4 +601,9 @@ class postLogger():
             SaveObject([bnn_obj,mcmc_obj,self,add_obj],self._pklfile)
         else:
             SaveObject([bnn_obj,mcmc_obj,self],self._pklfile)
-        
+
+
+
+def predict(bnn_obj: npBNN, data: np.ndarray):
+    return RunPredict(data, bnn_obj._w_layers,
+                      actFun=bnn_obj._act_fun, output_act_fun=bnn_obj._output_act_fun)
