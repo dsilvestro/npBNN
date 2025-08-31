@@ -561,10 +561,11 @@ class postLogger():
         # row.append(mcmc_obj._accepted_states / mcmc_obj._current_iteration)
         row.append(mcmc_obj._acceptance_rate)
         row.append(mcmc_obj._mcmc_id)
-        logfile_IO = open(self._logfile, "a")
-        wlog = csv.writer(logfile_IO, delimiter='\t')
-        wlog.writerow(row)
-        logfile_IO.flush()
+        # Open the file in text mode with a blank newline argument
+        with open(self._logfile, "a", newline='') as logfile_IO:
+            wlog = csv.writer(logfile_IO, delimiter='\t')
+            wlog.writerow(row)
+            logfile_IO.flush()
 
     def log_weights(self, bnn_obj, mcmc_obj, add_prms=None, add_obj=None):
         # print(mcmc_obj._current_iteration, self._counter, len(self._list_post_weights))
@@ -574,10 +575,10 @@ class postLogger():
             row = row + [j for j in list(tmp.flatten())]
             for i in range(1, bnn_obj._n_layers):
                 row = row + [j for j in list(bnn_obj._w_layers[i].flatten())]
-            w_file_IO = open(self._w_file, "a")
-            wweights = csv.writer(w_file_IO, delimiter='\t')
-            wweights.writerow(row)
-            w_file_IO.flush()
+            with open(self._w_file, "a", newline='') as w_file_IO:
+                wweights = csv.writer(w_file_IO, delimiter='\t')
+                wweights.writerow(row)
+                w_file_IO.flush()
         else:
             if bnn_obj._freq_indicator:
                 tmp = list()

@@ -165,14 +165,14 @@ def init_output_files(bnn_obj, filename="BNN", sample_from_prior=0, outpath="",a
     head.append("mcmc_id")
 
     if not continue_logfile:
-        logfile_IO = open(logfile_name, "w", newline='')
-        wlog = csv.writer(logfile_IO, delimiter='\t')
-        wlog.writerow(head)
+        with open(logfile_name, "w", newline='') as logfile_IO:
+            wlog = csv.writer(logfile_IO, delimiter='\t')
+            wlog.writerow(head)
 
     if log_all_weights:
-        w_file_IO = open(w_file_name, "w", newline='')
-        wweights = csv.writer(w_file_IO, delimiter='\t')
-        wweights.writerow(head_w)
+        with open(w_file_name, "w", newline='') as w_file_IO:
+            wweights = csv.writer(w_file_IO, delimiter='\t')
+            wweights.writerow(head_w)
 
     pkl_file = os.path.join(outpath, outname + ".pkl")
     return logfile_name, w_file_name, pkl_file
