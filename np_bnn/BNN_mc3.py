@@ -11,13 +11,13 @@ class MC3():
                  logger: postLogger,
                  n_post_samples=100,
                  sampling_f=100,
-
                  n_chains=4,
                  swap_frequency=100,
                  verbose=1,
                  print_f=100,
                  temperatures=None,
                  min_temperature=0.8,
+                 likelihood_f=None,
                  adapt_freq=50,
                  adapt_f=0.1,
                  adapt_fM=0.6,
@@ -35,6 +35,7 @@ class MC3():
         self.adapt_f = adapt_f
         self.adapt_fM = adapt_fM
         self.adapt_stop = adapt_stop
+        self.likelihood_f = likelihood_f
         self.n_mc3_iteration = np.round(n_iteration / swap_frequency).astype(int)
 
         # init chains seeds
@@ -56,17 +57,18 @@ class MC3():
 
         # setup MCMCs
         mcmcList = [MCMC(bnnList[i],
-                              temperature=self.temperatures[i],
-                              n_iteration=self.swap_frequency,
-                              sampling_f=self.sampling_f,
-                              print_f=self.swap_frequency * 10,
-                              n_post_samples=self.n_post_samples,
-                              mcmc_id=i,
-                              randomize_seed=True,
-                              adapt_freq=self.adapt_freq,
-                              adapt_f=self.adapt_f,
-                              adapt_fM=self.adapt_fM,
-                              adapt_stop=self.adapt_stop)
+                         temperature=self.temperatures[i],
+                         n_iteration=self.swap_frequency,
+                         sampling_f=self.sampling_f,
+                         print_f=self.swap_frequency * 10,
+                         n_post_samples=self.n_post_samples,
+                         mcmc_id=i,
+                         randomize_seed=True,
+                         adapt_freq=self.adapt_freq,
+                         adapt_f=self.adapt_f,
+                         adapt_fM=self.adapt_fM,
+                         adapt_stop=self.adapt_stop,
+                         likelihood_f=self.likelihood_f)
                     for i in range(n_chains)]
 
         self.logger = logger

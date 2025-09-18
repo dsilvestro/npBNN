@@ -274,14 +274,15 @@ class MCMC():
         self._current_iteration = 0
         self._y = RunPredict(bnn_obj._data, bnn_obj._w_layers, bnn_obj._act_fun, bnn_obj._output_act_fun)
 
-        if bnn_obj._estimation_mode == "classification":
+        if likelihood_f is not None:
+            self._likelihood_f = likelihood_f
+        elif bnn_obj._estimation_mode == "classification":
             self._likelihood_f = calc_likelihood
         elif bnn_obj._estimation_mode == "regression":
             self._likelihood_f = calc_likelihood_regression
         elif bnn_obj._estimation_mode == "regression-error":
             self._likelihood_f = calc_likelihood_regression_error
-        else:
-            self._likelihood_f = likelihood_f
+
         if sample_from_prior:
             self._logLik = 0
         else:
