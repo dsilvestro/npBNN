@@ -18,8 +18,12 @@ install it on Python {}.{}.
 with open("README.md", "r", encoding="utf-8") as fh:
     long_description = fh.read()
 
-with open("requirements.txt", "r", encoding="utf-8") as fh:
-    requirements_list = fh.read().splitlines()
+requirements_list = [
+    "numpy>=1.19.2",
+    "scipy>=1.5.2",
+    "pandas>=1.1.5",
+    "matplotlib>=3.3.3"
+]
 
 setuptools.setup(
     name="npBNN",
