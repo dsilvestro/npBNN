@@ -159,6 +159,8 @@ def run_mcmc(bnn, mcmc, logger):
             print(mcmc._current_iteration, np.round([mcmc._logLik, mcmc._accuracy, mcmc._test_accuracy, acceptance_rate],3),flush=True)
             if bnn._estimation_mode == "regression":
                 print(bnn._error_prm)
+            if bnn._feature_indicators is not None:
+                print(bnn._feature_indicators)
         # save to file
         if mcmc._current_iteration % mcmc._sampling_f == 0:
             logger.log_sample(bnn,mcmc)

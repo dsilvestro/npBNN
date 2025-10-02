@@ -6,6 +6,16 @@ from .BNN_mcmc import *
 from .BNN_files import *
 
 
+class data_transform_obj():
+    def __init__(self, feature_indicators, feature_means):
+        self.feature_indicators = feature_indicators
+        self.feature_means = feature_means
+
+    def transform(self, data):
+        d = data + 0
+        d[:, self.feature_indicators == 0] = self.feature_means[self.feature_indicators == 0]
+        return d
+
 class npBNN():
     def __init__(self, dat, n_nodes=[50, 5],
                  use_bias_node=1, init_std=0.1, p_scale=1, prior_ind1=0.5,
@@ -15,7 +25,8 @@ class npBNN():
                  instance_weights=None, # array specifying instance weights
                  empirical_error=False,
                  size_output=None,
-                 output_act_fun=None
+                 output_act_fun=None,
+                 feature_indicators=None,
                  ):
         # prior_f: 0) uniform 1) normal 2) cauchy
         # to change the boundaries of a uniform prior use -p_scale
@@ -80,6 +91,8 @@ class npBNN():
         self._prior_ind1 = prior_ind1
         self._estimation_mode = estimation_mode
         self._mask = None
+        self._feature_indicators = feature_indicators
+        self._feature_means = None
 
         if use_class_weights:
             class_counts = np.unique(self._labels, return_counts=True)[1]
@@ -153,6 +166,15 @@ class npBNN():
         print("N. of parameters:", n_params)
         for w in self._w_layers: print(w.shape)
         self._n_params = n_params
+
+        if self._feature_indicators:
+            self._feature_indicators = np.ones(self._data.shape[1]).astype(int)
+            self._feature_means = np.mean(self._data, axis=0)
+        else: self._feature_indicators = None
+
+
+    def get_feature_mean(self):
+        m = np.mean(self._data, axis=0)
 
     # init prior functions
     def calc_prior(self, w=0, ind=[]):
@@ -249,7 +271,9 @@ class npBNN():
 
 
 class MCMC():
-    def __init__(self, bnn_obj, update_f=None, update_ws=None,
+    def __init__(self,
+                 bnn_obj: npBNN,
+                 update_f=None, update_ws=None,
                  temperature=1, n_iteration=100000, sampling_f=100, print_f=1000, n_post_samples=1000,
                  update_function=UpdateNormal, sample_from_prior=0, run_ID="", init_additional_prob=0,
                  likelihood_tempering=1, mcmc_id=0, randomize_seed=False, adapt_f=0, estimate_error=True,
@@ -354,6 +378,7 @@ class MCMC():
             self._estimate_error = self._n_iterations
 
     def mh_step(self, bnn_obj, additional_prob=0, return_bnn=False):
+        data_transform = None
         if self._randomize_seed:
             self._rs = np.random.default_rng(self._current_iteration + self._mcmc_id)
 
@@ -383,7 +408,7 @@ class MCMC():
                 self.reset_update_n(n)
                 self.reset_update_ws([i * 1.2 for i in self._update_ws])
                 print(self._acceptance_rate, self._update_n, self._update_ws[0][0][0], self._freq_layer_update, self._update_f)
-  
+
         # if trainable prm in activation function
         if bnn_obj._act_fun._trainable:
             prm_tmp, _, h = UpdateNormal1D(bnn_obj._act_fun._acc_prm, d=0.05, n=1, Mb=1, mb=0, rs=self._rs)
@@ -391,6 +416,18 @@ class MCMC():
             additional_prob += np.log(r) * -np.sum(prm_tmp)*r # aka exponential Exp(r)
             hastings += h
             bnn_obj._act_fun.reset_prm(prm_tmp)
+
+        # if feature indicators
+        if bnn_obj._feature_indicators is not None and self._current_iteration > self._adapt_stop:
+            if self._rs.random() < 0.2:
+                feature_indicators_prime = UpdateBinomial(bnn_obj._feature_indicators + 0, 0.5, bnn_obj._feature_indicators.shape)
+                data_transform = data_transform_obj(feature_indicators_prime, bnn_obj._feature_means)
+            else:
+                feature_indicators_prime = bnn_obj._feature_indicators + 0
+                data_transform = data_transform_obj(feature_indicators_prime, bnn_obj._feature_means)
+        else:
+            feature_indicators_prime = bnn_obj._feature_indicators
+            data_transform = None
 
         if bnn_obj._estimation_mode == "regression" and self._current_iteration > self._estimate_error:
             if bnn_obj._empirical_error:
@@ -422,7 +459,9 @@ class MCMC():
                 w_layers_prime_temp = w_layers_prime[i] * indicators_prime
             else:
                 w_layers_prime_temp = w_layers_prime[i]
-            if i < bnn_obj._n_layers-1:
+            if i == 0:
+                tmp = RunHiddenLayer(tmp, w_layers_prime_temp, bnn_obj._act_fun, i, data_transform)
+            elif i < bnn_obj._n_layers-1:
                 tmp = RunHiddenLayer(tmp, w_layers_prime_temp,bnn_obj._act_fun, i)
             else:
                 tmp = RunHiddenLayer(tmp, w_layers_prime_temp, False, i)
@@ -450,6 +489,8 @@ class MCMC():
             # print(logPost_prime, self._logPost)
             bnn_obj.reset_weights(w_layers_prime)
             bnn_obj.reset_indicators(indicators_prime)
+            if bnn_obj._feature_indicators is not None:
+                bnn_obj._feature_indicators = feature_indicators_prime + 0
             if bnn_obj._estimation_mode == "regression":
                 bnn_obj.reset_error_prm(error_prm_tmp)
             if bnn_obj._act_fun._trainable:
@@ -464,7 +505,7 @@ class MCMC():
             if len(bnn_obj._test_data) > 0:
                 self._y_test = RunPredictInd(bnn_obj._test_data, bnn_obj._w_layers,
                                              bnn_obj._indicators, bnn_obj._act_fun,
-                                             bnn_obj._output_act_fun)
+                                             bnn_obj._output_act_fun, data_transform=data_transform)
                 self._test_accuracy = self._accuracy_f(self._y_test, bnn_obj._test_labels)
             else:
                 self._y_test = []
@@ -560,6 +601,10 @@ class postLogger():
         if self._estimation_mode == "regression":
             row = row + list(bnn_obj._error_prm)
         # row.append(mcmc_obj._accepted_states / mcmc_obj._current_iteration)
+
+        if bnn_obj._feature_indicators is not None:
+            row = row + list(bnn_obj._feature_indicators)
+
         row.append(mcmc_obj._acceptance_rate)
         row.append(mcmc_obj._mcmc_id)
         # Open the file in text mode with a blank newline argument
@@ -596,7 +641,9 @@ class postLogger():
                 post_prm['error_prm'] = list(bnn_obj._error_prm)
             if add_prms:
                 post_prm['additional_prm'] = list(add_prms)
-
+            # if bnn_obj._feature_indicators is not None:
+            #     for i in range(bnn_obj._n_features):
+            #         post_prm['feature_ind_%s' % i] = bnn_obj._feature_indicators[i]
             self.update_post_weight_samples(post_prm)
             self.control_weight_sample_length(mcmc_obj._n_post_samples)
         if add_obj:
@@ -607,5 +654,11 @@ class postLogger():
 
 
 def predict(bnn_obj: npBNN, data: np.ndarray):
+    if bnn_obj._feature_indicators is not None:
+        data_transform = data_transform_obj(bnn_obj._feature_indicators, bnn_obj._feature_means)
+    else:
+        data_transform = None
+
     return RunPredict(data, bnn_obj._w_layers,
-                      actFun=bnn_obj._act_fun, output_act_fun=bnn_obj._output_act_fun)
+                      actFun=bnn_obj._act_fun, output_act_fun=bnn_obj._output_act_fun,
+                      data_transform=data_transform)

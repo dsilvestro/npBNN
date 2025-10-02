@@ -181,7 +181,11 @@ def RegressTransformError(z, ind=None):
     z[:, ind:] = SoftPlus(z[:, ind:])
     return z
 
-def RunHiddenLayer(z0, w01, actFun, layer_n):
+def RunHiddenLayer(z0, w01, actFun, layer_n, data_transform=None):
+    if data_transform is None:
+        pass
+    else:
+        z0 = data_transform.transform(z0)
     z1 = MatrixMultiplicationD(z0, w01)
     if actFun:
         return actFun.eval(z1, layer_n)
@@ -238,9 +242,12 @@ def SaveObject(obj, filename):
     with open(filename, 'wb') as output:  # Overwrites any existing file.
         pickle.dump(obj, output, pickle.HIGHEST_PROTOCOL)
 
-def RunPredict(data, weights, actFun, output_act_fun):
+def RunPredict(data, weights, actFun, output_act_fun, data_transform=None):
     # weights: list of 2D arrays
-    tmp = data+0
+    if data_transform is None:
+        tmp = data + 0
+    else:
+        tmp = data_transform.transform(data)
     for i in range(len(weights)-1):
         tmp = RunHiddenLayer(tmp,weights[i],actFun, i)
     tmp = RunHiddenLayer(tmp, weights[i+1], False, i+1)
@@ -248,11 +255,14 @@ def RunPredict(data, weights, actFun, output_act_fun):
     y_predict = output_act_fun(tmp)
     return y_predict
 
-def RunPredictInd(data, weights, ind, actFun, output_act_fun):
+def RunPredictInd(data, weights, ind, actFun, output_act_fun, data_transform=None):
     # weights: list of 2D arrays
-    tmp = data+0
+    if data_transform is None:
+        tmp = data + 0
+    else:
+        tmp = data_transform.transform(data)
     for i in range(len(weights)-1):
-        if i ==0:
+        if i == 0:
             tmp = RunHiddenLayer(tmp,weights[i]*ind,actFun, i)
         elif i < len(weights)-1:
             tmp = RunHiddenLayer(tmp,weights[i],actFun, i)

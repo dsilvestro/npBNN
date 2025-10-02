@@ -103,7 +103,7 @@ def save_data(dat, lab, outname="data", test_dat=[], test_lab=[]):
         np.savetxt(outname + "_test_features.txt", test_dat, delimiter="\t")
         np.savetxt(outname + "_test_labeles.txt", test_lab.astype(int), delimiter="\t")
 
-def init_output_files(bnn_obj, filename="BNN", sample_from_prior=0, outpath="",add_prms=None,
+def init_output_files(bnn_obj, filename="bnn", sample_from_prior=0, outpath="", add_prms=None,
                       continue_logfile=False, log_all_weights=0):
     # create output dir
     outdir = os.path.dirname(filename)
@@ -120,6 +120,7 @@ def init_output_files(bnn_obj, filename="BNN", sample_from_prior=0, outpath="",a
     ind =  ind + "_%s" % bnn_obj._seed
     outname = "%s_p%s_h%s_l%s_s%s_b%s%s" % (filename, bnn_obj._prior,bnn_obj._hyper_p, "_".join(map(str,
                                             bnn_obj._n_nodes)), bnn_obj._p_scale, bnn_obj._w_bound, ind)
+    outname = "%s_l%s" % (filename, "_".join(map(str, bnn_obj._n_nodes)))
 
     logfile_name = os.path.join(outpath, outname + ".log")
     if log_all_weights:
@@ -160,6 +161,10 @@ def init_output_files(bnn_obj, filename="BNN", sample_from_prior=0, outpath="",a
 
     if len(bnn_obj._error_prm):
         head = head + ["sig_%s" % (i) for i in range(len(bnn_obj._error_prm))]
+
+    if bnn_obj._feature_indicators is not None:
+        for i in range(bnn_obj._n_features):
+            head.append('feature_ind_%s' % i)
 
     head.append("acc_prob")
     head.append("mcmc_id")
