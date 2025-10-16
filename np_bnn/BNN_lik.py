@@ -21,10 +21,25 @@ def negbin_likelihood(prediction, # 2D array: inst x (prms)
                       sig2=0
                       ):
     # mean
+    # nb_mean = np.exp(prediction[:, 0])
     nb_mean = np.exp(prediction[:, 0])
     p = 1 / (1 + np.exp(-prediction[:, 1]))
     n = p * nb_mean / (1 - p)
     # "n = np.exp(prediction[:, 0])"
+    lik =  np.sum(scipy.stats.nbinom.logpmf(true_values[:,0], n=n, p=p))
+    return lik
+
+
+def negbin_likelihood_base10(prediction, # 2D array: inst x (prms)
+                      true_values, # 2D array: ints x (successes, counts, time, sample_IDs)
+                      sample_id=None, class_weight=None,
+                      instance_weight=None,
+                      lik_temp=1,
+                      sig2=0
+                      ):
+    nb_mean = 10**(prediction[:, 0])
+    p = 1 / (1 + 10**(-prediction[:, 1]))
+    n = p * nb_mean / (1 - p)
     lik =  np.sum(scipy.stats.nbinom.logpmf(true_values[:,0], n=n, p=p))
     return lik
 
