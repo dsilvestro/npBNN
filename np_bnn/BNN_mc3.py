@@ -18,6 +18,7 @@ class MC3():
                  temperatures=None,
                  min_temperature=0.8,
                  likelihood_f=None,
+                 accuracy_f=None,
                  adapt_freq=50,
                  adapt_f=0.1,
                  adapt_fM=0.6,
@@ -37,6 +38,7 @@ class MC3():
         self.adapt_stop = adapt_stop
         self.likelihood_f = likelihood_f
         self.n_mc3_iteration = np.round(n_iteration / swap_frequency).astype(int)
+        self.accuracy_f = accuracy_f
 
         # init chains seeds
         self.rseeds = np.random.choice(range(1000, 9999), n_chains, replace=False)
@@ -68,7 +70,8 @@ class MC3():
                          adapt_f=self.adapt_f,
                          adapt_fM=self.adapt_fM,
                          adapt_stop=self.adapt_stop,
-                         likelihood_f=self.likelihood_f)
+                         likelihood_f=self.likelihood_f,
+                         accuracy_f=self.accuracy_f)
                     for i in range(n_chains)]
 
         self.logger = logger

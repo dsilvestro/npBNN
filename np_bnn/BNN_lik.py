@@ -60,6 +60,10 @@ def negbin_acc(y, lab):
     acc = np.mean( (np.exp(y[: ,0]) - lab[:, 0])**2 )
     return acc
 
+def negbin_acc_base10(y, lab):
+    acc = np.mean( (10**(y[: ,0]) - lab[:, 0])**2 )
+    return acc
+
 def poi_acc(y, lab):
     acc = np.mean( (np.exp(y[:, 0]) - lab[:, 0])**2 )
     return acc
