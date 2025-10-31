@@ -152,12 +152,3 @@ feature_importance = bn.feature_importance(dat['test_data'],
                                            unlink_features_within_block = True)
 
 feature_importance.to_csv("./example_files/feature_imp.csv")
-
-
-# PDP
-pd = bn.pdp(logger._pklfile, [[0], [1]])
-p = pd[0]['pdp']
-p[0, :, :]
-
-
-
