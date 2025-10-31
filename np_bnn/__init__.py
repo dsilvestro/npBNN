@@ -20,3 +20,6 @@ from .BNN_mc3 import *
 
 from . import BNN_lik
 from .BNN_lik import *
+
+from . import BNN_pdp
+from .BNN_pdp import *
