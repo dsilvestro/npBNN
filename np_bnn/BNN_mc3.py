@@ -47,7 +47,7 @@ class MC3():
             if n_chains == 1:
                 temperatures = [1]
             else:
-                temperatures = np.linspace(0.8, 1, n_chains)
+                temperatures = np.linspace(min_temperature, 1, n_chains)
         self.temperatures = temperatures
 
         # replicate data
