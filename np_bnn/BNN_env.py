@@ -410,7 +410,7 @@ class MCMC():
                 self.reset_update_n(n)
                 self.reset_update_ws([i * 1.2 for i in self._update_ws])
                 if self._adapt_verbose:
-                print(self._acceptance_rate, self._update_n, self._update_ws[0][0][0], self._freq_layer_update, self._update_f)
+                    print(self._acceptance_rate, self._update_n, self._update_ws[0][0][0], self._freq_layer_update, self._update_f)
 
         # if trainable prm in activation function
         if bnn_obj._act_fun._trainable:
