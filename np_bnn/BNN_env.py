@@ -277,7 +277,7 @@ class MCMC():
                  temperature=1, n_iteration=100000, sampling_f=100, print_f=1000, n_post_samples=1000,
                  update_function=UpdateNormal, sample_from_prior=0, run_ID="", init_additional_prob=0,
                  likelihood_tempering=1, mcmc_id=0, randomize_seed=False, adapt_f=0, estimate_error=True,
-                 adapt_fM=1, adapt_freq=1000, adapt_stop=None, likelihood_f=None,
+                 adapt_fM=1, adapt_freq=1000, adapt_stop=None, likelihood_f=None, adapt_verbose=False,
                  accuracy_f=None, accuracy_lab_f=None):
         if update_ws is None:
             update_ws = [0.075] * bnn_obj._n_layers
@@ -365,6 +365,7 @@ class MCMC():
         self._freq_layer_update = np.ones(bnn_obj._n_layers)
         self._adapt_f = adapt_f
         self._adapt_fM = adapt_fM
+        self._adapt_verbose = adapt_verbose
         if adapt_stop is None:
             self._adapt_stop = int(self._n_iterations * 0.05)
         else:
@@ -397,7 +398,8 @@ class MCMC():
                 n[n < 1] = 1
                 self.reset_update_n(n)
                 self.reset_update_ws([i * 0.9 for i in self._update_ws])
-                print(self._acceptance_rate, self._update_n, self._update_ws[0][0][0], self._freq_layer_update, self._update_f)
+                if self._adapt_verbose:
+                    print(self._acceptance_rate, self._update_n, self._update_ws[0][0][0], self._freq_layer_update, self._update_f)
 
 
 
@@ -407,6 +409,7 @@ class MCMC():
                 n[n < 1] = 1
                 self.reset_update_n(n)
                 self.reset_update_ws([i * 1.2 for i in self._update_ws])
+                if self._adapt_verbose:
                 print(self._acceptance_rate, self._update_n, self._update_ws[0][0][0], self._freq_layer_update, self._update_f)
 
         # if trainable prm in activation function

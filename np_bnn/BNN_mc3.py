@@ -85,44 +85,42 @@ class MC3():
         return [bnn_obj_new, mcmc_obj_new]
 
     def run_mcmc(self):
-        for mc3_it in range(self.n_mc3_iteration):
+        # Choose the appropriate multiprocessing method based on the OS
+        if os.name == 'posix':  # For Unix-based systems (macOS, Linux)
+            ctx = multiprocessing.get_context('fork')
+        else:  # For Windows
+            ctx = multiprocessing.get_context('spawn')
 
-            # Choose the appropriate multiprocessing method based on the OS
-            if os.name == 'posix':  # For Unix-based systems (macOS, Linux)
-                ctx = multiprocessing.get_context('fork')
-            else:  # For Windows
-                ctx = multiprocessing.get_context('spawn')
-
-            with ctx.Pool(self.n_chains) as pool:
+        with ctx.Pool(self.n_chains) as pool:
+            for mc3_it in range(self.n_mc3_iteration):
                 self.singleChainArgs = list(pool.map(self.run_single_mcmc, self.singleChainArgs))
+                # singleChainArgs = [i for i in tmp]
+                if self.n_chains > 1:
+                    n1 = np.random.choice(range(self.n_chains), 2, replace=False)
+                    [j, k] = n1
+                    temp_j = self.singleChainArgs[j][1]._temperature + 0
+                    temp_k = self.singleChainArgs[k][1]._temperature + 0
+                    r = (self.singleChainArgs[k][1]._logPost - self.singleChainArgs[j][1]._logPost) * temp_j + \
+                        (self.singleChainArgs[j][1]._logPost - self.singleChainArgs[k][1]._logPost) * temp_k
 
-            # singleChainArgs = [i for i in tmp]
-            if self.n_chains > 1:
-                n1 = np.random.choice(range(self.n_chains), 2, replace=False)
-                [j, k] = n1
-                temp_j = self.singleChainArgs[j][1]._temperature + 0
-                temp_k = self.singleChainArgs[k][1]._temperature + 0
-                r = (self.singleChainArgs[k][1]._logPost - self.singleChainArgs[j][1]._logPost) * temp_j + \
-                    (self.singleChainArgs[j][1]._logPost - self.singleChainArgs[k][1]._logPost) * temp_k
+                    # print(mc3_it, r, singleChainArgs[j][1]._logPost, singleChainArgs[k][1]._logPost, temp_j, temp_k)
+                    # if mc3_it % self.print_f == 0:
+                    #     print(mc3_it, self.singleChainArgs[0][1]._logPost, self.singleChainArgs[1][1]._logPost,
+                    #           self.singleChainArgs[0][0]._w_layers[0][0][0:5])
+                    if r >= np.log(np.random.random()):
+                        self.singleChainArgs[j][1].reset_temperature(temp_k)
+                        self.singleChainArgs[k][1].reset_temperature(temp_j)
+                        if self.verbose > 0:
+                            print(mc3_it, "SWAPPED", self.singleChainArgs[j][1]._logPost,
+                                  self.singleChainArgs[k][1]._logPost, temp_j,
+                                  temp_k)
 
-                # print(mc3_it, r, singleChainArgs[j][1]._logPost, singleChainArgs[k][1]._logPost, temp_j, temp_k)
-                # if mc3_it % self.print_f == 0:
-                #     print(mc3_it, self.singleChainArgs[0][1]._logPost, self.singleChainArgs[1][1]._logPost,
-                #           self.singleChainArgs[0][0]._w_layers[0][0][0:5])
-                if r >= np.log(np.random.random()):
-                    self.singleChainArgs[j][1].reset_temperature(temp_k)
-                    self.singleChainArgs[k][1].reset_temperature(temp_j)
-                    if self.verbose > 0:
-                        print(mc3_it, "SWAPPED", self.singleChainArgs[j][1]._logPost,
-                              self.singleChainArgs[k][1]._logPost, temp_j,
-                              temp_k)
+                for i in range(self.n_chains):
+                    if self.singleChainArgs[i][1]._temperature == 1:
+                        # print( singleChainArgs[i][0]._w_layers[0][0][0:10] )
+                        self.logger.log_sample(self.singleChainArgs[i][0], self.singleChainArgs[i][1])
+                        self.logger.log_weights(self.singleChainArgs[i][0], self.singleChainArgs[i][1])
 
-            for i in range(self.n_chains):
-                if self.singleChainArgs[i][1]._temperature == 1:
-                    # print( singleChainArgs[i][0]._w_layers[0][0][0:10] )
-                    self.logger.log_sample(self.singleChainArgs[i][0], self.singleChainArgs[i][1])
-                    self.logger.log_weights(self.singleChainArgs[i][0], self.singleChainArgs[i][1])
-
-            else:
-                if mc3_it % self.print_f == 0:
-                    print(mc3_it, self.singleChainArgs[0][1]._logPost, self.singleChainArgs[0][0]._w_layers[0][0][0:5])
+                else:
+                    if mc3_it % self.print_f == 0:
+                        print(mc3_it, self.singleChainArgs[0][1]._logPost, self.singleChainArgs[0][0]._w_layers[0][0][0:5])
