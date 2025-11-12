@@ -440,6 +440,8 @@ class MCMC():
                 r = 1
                 hastings += h
                 additional_prob += np.log(r) * -np.sum(error_prm_tmp)*r # aka exponential Exp(r)
+        else:
+            error_prm_tmp = 1
 
         rr = self._rs.random(bnn_obj._n_layers)
         rr[np.argmin(rr)] = 0 # make sure one layer is always updated
@@ -470,8 +472,9 @@ class MCMC():
                 tmp = RunHiddenLayer(tmp, w_layers_prime_temp, False, i)
         y_prime = bnn_obj._output_act_fun(tmp)
 
-        if bnn_obj._empirical_error:
+        if bnn_obj._estimation_mode == "regression" and bnn_obj._empirical_error:
             error_prm_tmp = np.std(y_prime - bnn_obj._labels, axis=0)
+
         # elif self._current_iteration < self._estimate_error:
         #     error_prm_tmp = np.std(y_prime - bnn_obj._labels, axis=0)
 

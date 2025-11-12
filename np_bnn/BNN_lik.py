@@ -30,6 +30,28 @@ def negbin_likelihood(prediction, # 2D array: inst x (prms)
     return lik
 
 
+def negbin_likelihood2d(prediction, # 2D array: inst x (prms)
+                      true_values, # 2D array: ints x (successes, counts, time, sample_IDs)
+                      sample_id=None, class_weight=None,
+                      instance_weight=None,
+                      lik_temp=1,
+                      sig2=0
+                      ):
+    # mean
+    # nb_mean = np.exp(prediction[:, 0])
+    # print("negbin_likelihood", prediction.shape, true_values.shape)
+    nb_mean = np.exp(prediction[:, :true_values.shape[1]])
+    p = 1 / (1 + np.exp(-prediction[:, true_values.shape[1]:]))
+    n = p * nb_mean / (1 - p)
+    # print("negbin_likelihood", n.shape, p.shape, true_values.shape)
+    # "n = np.exp(prediction[:, 0])"
+    lik =  np.sum(scipy.stats.nbinom.logpmf(true_values, n=n, p=p))
+    return lik
+
+
+
+
+
 def negbin_likelihood_base10(prediction, # 2D array: inst x (prms)
                       true_values, # 2D array: ints x (successes, counts, time, sample_IDs)
                       sample_id=None, class_weight=None,
@@ -63,6 +85,11 @@ def negbin_acc(y, lab):
 def negbin_acc_base10(y, lab):
     acc = np.mean( (10**(y[: ,0]) - lab[:, 0])**2 )
     return acc
+
+def negbin2d_acc(y, lab):
+    acc = np.mean( (np.exp(y[: , :lab.shape[1]]) - lab[:, :lab.shape[1]])**2 )
+    return acc
+
 
 def poi_acc(y, lab):
     acc = np.mean( (np.exp(y[:, 0]) - lab[:, 0])**2 )

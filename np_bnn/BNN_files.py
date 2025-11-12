@@ -55,8 +55,10 @@ def get_data(f,l=None,testsize=0.1, batch_training=0,seed=1234, all_class_in_tes
             l = pd.DataFrame(l)
             if instance_id:
                 tot_labels = l.values[:, 1:]
-            else:
+            elif label_mode == "classification":
                 tot_labels = l.values.astype(str).flatten()  # if l already is a dataframe
+            else:
+                tot_labels = l.values
         except:
             tot_labels = np.loadtxt(l, skiprows=int(header), dtype=str)
 
@@ -70,6 +72,8 @@ def get_data(f,l=None,testsize=0.1, batch_training=0,seed=1234, all_class_in_tes
                 tot_labels_numeric = tot_labels.reshape((tot_labels.shape[0], 1))
             else:
                 tot_labels_numeric = tot_labels
+
+        print("tot_labels_numeric", tot_labels_numeric.shape)
         x, labels, x_test, labels_test, inst_id_x, inst_id_x_test = randomize_data(tot_x, tot_labels_numeric,
                                                                                    testsize=testsize,
                                                                                    all_class_in_testset=all_class_in_testset,
