@@ -90,6 +90,12 @@ def negbin2d_acc(y, lab):
     acc = np.mean( (np.exp(y[: , :lab.shape[1]]) - lab[:, :lab.shape[1]])**2 )
     return acc
 
+def negbin2d_rmsle(y, lab):
+    acc = np.sqrt(np.mean( (y[: , :lab.shape[1]] - np.log1p(lab[:, :lab.shape[1]]))**2 ))
+    # np.sqrt(np.mean((lab[:, :lab.shape[1]] - y[: , :lab.shape[1]]))  2)
+    return acc
+
+
 
 def poi_acc(y, lab):
     acc = np.mean( (np.exp(y[:, 0]) - lab[:, 0])**2 )
