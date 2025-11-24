@@ -27,7 +27,7 @@ requirements_list = [
 
 setuptools.setup(
     name="npBNN",
-    version="0.1.16",
+    version="0.1.23",
     author="Daniele Silvestro and Tobias Andermann",
     description="Bayesian neural networks using Numpy and Scipy",
     long_description=long_description,
